@@ -4,10 +4,10 @@ Proyecto de un **teclado numérico auxiliar** ("numpad") DIY basado en **ESP32-S
 conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** y una
 **pantalla OLED** que lo convierte también en una **calculadora standalone**.
 
-> Estado actual: **fase de diseño y documentación**. El hardware aún no fue adquirido.
-> Este repositorio contiene la documentación completa del proyecto (conceptos, ideas,
-> especificaciones y plan de desarrollo) para servir como blueprint antes de comprar
-> componentes y escribir el firmware.
+> Estado actual: **documentación completa + firmware en desarrollo (primera versión)**.
+> El hardware aún no fue adquirido; el código de `firmware/` es un esqueleto funcional
+> escrito contra ESP-IDF 5.4 (aún no compilado en esta máquina — no hay toolchain
+> instalado).
 
 ---
 
@@ -45,16 +45,44 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 esp32-KB/
 ├── README.md                     <- Este archivo (visión general)
 ├── .gitignore
-└── docs/                         <- Documentación técnica completa
-    ├── 01-conceptos-generales.md     Conceptos, objetivos y decisiones de diseño
-    ├── 02-hardware.md                BOM, layout, matriz, GPIO map y alimentación
-    ├── 03-firmware.md                Arquitectura de firmware ESP-IDF
-    ├── 04-ideas-funciones.md         Catálogo de funciones/gadgets priorizados
-    ├── 05-alimentacion-y-bateria.md  Energía: TP4056, curva Li-Ion, medición ADC
-    ├── 06-usb-y-bluetooth.md         HID: USB + BLE, coexistencia y limitaciones
-    ├── 07-plan-de-desarrollo.md      Roadmap, fases y criterios de aceptación
-    └── 08-referencias-y-recursos.md  Recursos y repos de referencia
+├── docs/                         <- Documentación técnica completa
+│   ├── 01-conceptos-generales.md     Conceptos, objetivos y decisiones de diseño
+│   ├── 02-hardware.md                BOM, layout, matriz, GPIO map y alimentación
+│   ├── 03-firmware.md                Arquitectura de firmware ESP-IDF
+│   ├── 04-ideas-funciones.md         Catálogo de funciones/gadgets priorizados
+│   ├── 05-alimentacion-y-bateria.md  Energía: TP4056, curva Li-Ion, medición ADC
+│   ├── 06-usb-y-bluetooth.md         HID: USB + BLE, coexistencia y limitaciones
+│   ├── 07-plan-de-desarrollo.md      Roadmap, fases y criterios de aceptación
+│   └── 08-referencias-y-recursos.md  Recursos y repos de referencia
+└── firmware/                      <- Código fuente (ESP-IDF 5.4, C)
+    ├── CMakeLists.txt
+    ├── sdkconfig.defaults
+    ├── partitions.csv
+    ├── main/                         app_main, matrix, keymap, encoder, hid_route
+    └── components/                   hid_usb (TinyUSB), hid_ble (esp_hidd+GAP),
+                                      display (SH1106), apps (calculadora),
+                                      power (batería), keycodes
 ```
+
+## Firmware (build)
+
+Requisitos: **ESP-IDF 5.4** (`~/.espressif` / `export IDF_PATH`).
+
+```bash
+cd firmware
+get_idf            # o: source $IDF_PATH/export.sh
+idf.py set-target esp32s3
+idf.py build       # descarga espressif/esp_tinyusb vía el component manager
+idf.py flash monitor
+```
+
+Puntos a revisar antes de flashear el hardware real:
+
+- `main/board_config.h` — GPIO map (filas, columnas, encoder, OLED, batería).
+- El **divisor de la batería** (`BATTERY_DIVIDER_RATIO`) en
+  `components/power/power.c` según el hardware real.
+- El **offset de columnas** del SH1106 (`DISPLAY_COL_OFFSET`) en
+  `components/display/display.c` (típicamente 2 en paneles 1.3").
 
 ---
 
@@ -75,9 +103,9 @@ esp32-KB/
 
 - [ ] Adquirir componentes (ver BOM en `docs/02-hardware.md`).
 - [ ] Validar GPIO map con la placa de desarrollo elegida (PSRAM octal, strapping).
-- [ ] Configurar ESP-IDF 5.4 y probar el ejemplo USB HID.
+- [ ] Instalar ESP-IDF 5.4 y compilar `firmware/` (ver sección de build arriba).
 - [ ] Construir el gabinete / PCB (fuera del alcance del firmware).
-- [ ] Escribir el firmware siguiendo `docs/03-firmware.md`.
+- [ ] Probar firmware en hardware real y ajustar pines/offsets.
 
 ---
 
