@@ -25,8 +25,8 @@ Este proyecto, además, agrega dos características que lo separan de un numpad 
   documentado.
 - Dominar el flujo completo: especificación → diseño → firmware → integración → gabinete.
 - Lograr **coexistencia USB + BLE HID** en un mismo micro (patrón no trivial).
-- Extender el numpad a una **plataforma multiuso** (calculadora, macros, media keys,
-  encoders) de forma priorizada y sostenible.
+- Extender el numpad a una **plataforma multiuso** (calculadora, menú de ajustes,
+  encoder) de forma priorizada y sostenible.
 
 ## 3. Decisiones de diseño clave (y por qué)
 
@@ -79,7 +79,8 @@ Este proyecto, además, agrega dos características que lo separan de un numpad 
 - Firmware mínimo: USB HID + BLE HID + matriz + pantalla + batería + calculadora.
 
 ### Incluido (fases posteriores)
-- Capa Fn, encoder, macros, media keys, auto-sleep.
+- Encoder, menú de ajustes en pantalla, auto-sleep. *(Descartadas en v0.2: capa Fn,
+  macros, media keys — ver `04`.)*
 
 ### Fuera del alcance del firmware (hardware físico)
 - Diseño de PCB, gabinete/case, placa de expansión de la matriz.

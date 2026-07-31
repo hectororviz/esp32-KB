@@ -78,7 +78,7 @@ esp_err_t power_init(const power_config_t *cfg)
     return ESP_OK;
 }
 
-int power_battery_percent(void)
+static int power_read_mv(void)
 {
     int raw = 0;
     int mv = 0;
@@ -86,6 +86,24 @@ int power_battery_percent(void)
         return -1;
     }
     if (adc_cali_raw_to_voltage(s_cali, raw, &mv) != ESP_OK) {
+        return -1;
+    }
+    return mv;
+}
+
+int power_battery_millivolts(void)
+{
+    int mv = power_read_mv();
+    if (mv < 0) {
+        return -1;
+    }
+    return (int)((float)mv * BATTERY_DIVIDER_RATIO);
+}
+
+int power_battery_percent(void)
+{
+    int mv = power_read_mv();
+    if (mv < 0) {
         return -1;
     }
     float v = (float)mv * BATTERY_DIVIDER_RATIO;

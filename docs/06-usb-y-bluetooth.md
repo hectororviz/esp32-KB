@@ -33,8 +33,8 @@ El report clásico de un teclado USB es **6KRO** (6 teclas simultáneas + modifi
 - Para un numpad, **6KRO sobra** (una persona no presiona más de 6 teclas a la vez en
   un numpad). **NKRO** (más teclas / todas) requiere diodos en la matriz y reportes
   más grandes; es opcional.
-- Existe un report aparte de **consumer control** (media keys: volumen, play/pause)
-  que se usa para la capa Fn y el encoder.
+- Existe un report aparte de **consumer control** (media keys: volumen, play/pause).
+  En este firmware se usa únicamente para el **volumen del encoder**.
 
 > Tabla de keycodes oficial: `usb_hid_usage_t` en el ESP-IDF
 > (`tinyusb` / `hal/usb_hid_usage.h`) o la tabla pública de la especificación USB HID.

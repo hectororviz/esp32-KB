@@ -6,7 +6,8 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 
 > Estado actual: **documentación completa + firmware compilando** (ESP-IDF 5.4,
 > target esp32s3, build verificado en esta máquina). El hardware aún no fue adquirido;
-> queda pendiente la validación en placa real.
+> queda pendiente la validación en placa real. El firmware usa **una sola capa** de teclas
+> (sin Fn) y un **menú de ajustes** en pantalla operado con el encoder.
 
 ---
 
@@ -16,25 +17,24 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 |---|---|
 | Microcontrolador | ESP32-S3 (USB nativo + WiFi + BLE) |
 | Conexión al host | USB HID (cable) **y** Bluetooth LE HID (inalámbrico) |
-| Teclas | 20 switchs mecánicos en matriz 5×4 (layout numpad + capa Fn) |
+| Teclas | 20 switchs mecánicos en matriz 5×4 (layout numpad + CALC) |
 | Extras de entrada | Encoder rotativo EC11 (con pulsador) |
 | Pantalla | OLED 1.3" I2C (SH1106) |
 | Alimentación | 18650 Li-Ion + módulo TP4056 + LDO 3.3 V |
 | Modo especial | **Calculadora standalone** con expresión en pantalla |
 | Framework | ESP-IDF 5.x (C) |
 
-### Características previstas
+### Características (alcance actual)
 
-- Teclado numérico completo (dígitos, operadores, Enter, NumLock).
-- **Capa Fn** con teclas multimedia, navegación y atajos de productividad.
-- **Encoder EC11**: volumen, scroll, zoom, edición de números, navegación.
-- **Calculadora standalone** con dígitos grandes, memoria (M+/M−/MR/MC) y modos
-  DEC/HEX/BIN.
-- **Pantalla de estado**: batería, modo activo, última tecla enviada, reloj/stopwatch.
-- **Macros / snippets** de texto (emails, texto repetitivo, caracteres especiales).
-- **Gestión de energía**: auto-sleep, aviso de batería baja, wake por tecla/encoder.
-- **Cambio de dispositivo**: emparejar PC / tablet / teléfono y alternar con Fn+tecla.
-- Tap-hold inteligente (ej.: `.` al tocar / `,` al mantener; Enter ↔ Shift).
+- Teclado numérico completo de **una sola capa** (dígitos, operadores, Enter, NumLock,
+  Backspace) por USB y BLE a la vez.
+- **Encoder EC11**: volumen en modo teclado y calculadora; navegación del menú.
+- **Tecla CALC** dedicada para abrir/cerrar la **calculadora standalone** (con
+  Backspace = borrar dígito y modos DEC/HEX/BIN ciclados con el pulsador del encoder).
+- **Menú de ajustes en pantalla** (operado con el encoder): Info del sistema, contraste
+  del OLED, invertir encoder y timeout de sleep; persistido en NVS.
+- **Pantalla de estado**: batería, carga, conexión USB/BLE.
+- **Gestión de energía** (fase 5): auto-sleep, aviso de batería baja, wake por tecla.
 
 ---
 
@@ -60,8 +60,8 @@ esp32-KB/
     ├── partitions.csv
     ├── main/                         app_main, matrix, keymap, encoder, hid_route
     └── components/                   hid_usb (TinyUSB), hid_ble (esp_hidd+GAP),
-                                      display (SH1106), apps (calculadora),
-                                      power (batería), keycodes
+                                      display (SH1106), apps (calculadora + menú),
+                                      settings (NVS), power (batería), keycodes
 ```
 
 ## Firmware (build)

@@ -1,8 +1,8 @@
 # 09 — Manual de usuario (Numpad-20)
 
 > Manual orientado al usuario final del **Numpad-20**. Describe el comportamiento del
-> firmware actual (primera versión compilada) y, donde corresponde, marca con
-> *(fase 2+)* las funciones previstas que aún no están implementadas.
+> firmware actual (v0.2, compilado) y, donde corresponde, marca con *(fase 2+)* las
+> funciones previstas que aún no están implementadas.
 
 ---
 
@@ -11,8 +11,10 @@
 El Numpad-20 es un **teclado numérico auxiliar** (20 teclas) con:
 
 - Conexión al host por **USB** (cable) y **Bluetooth BLE** (inalámbrico).
-- **Pantalla OLED** que muestra estado y una **calculadora standalone**.
-- **Encoder rotativo** para volumen y para cambiar la base de la calculadora.
+- **Pantalla OLED** que muestra estado, una **calculadora standalone** y un **menú de
+  ajustes**.
+- **Encoder rotativo** para volumen, navegación del menú y cambio de base de la
+  calculadora.
 - Batería recargable **18650** con carga por USB-C.
 
 ## 2. Primer uso
@@ -44,68 +46,71 @@ El Numpad-20 es un **teclado numérico auxiliar** (20 teclas) con:
 
 ## 4. Las teclas
 
-### 4.1 Capa base (numpad)
+El teclado tiene **una sola capa** (sin Fn):
 
 ```
-┌──────┬─────┬─────┬─────┐
-│ NumLk│  /  │  *  │  -  │
-├──────┼─────┼─────┼─────┤
-│  7   │  8  │  9  │  +  │
-├──────┼─────┼─────┼─────┤
-│  4   │  5  │  6  │  =  │
-├──────┼─────┼─────┼─────┤
-│  1   │  2  │  3  │ Ent │
-├──────┼─────┼─────┼─────┤
-│  0   │  .  │ Fn  │ Esc │
-└──────┴─────┴─────┴─────┘
+┌──────┬─────┬─────┬──────┐
+│ NumLk│  /  │  *  │  -   │
+├──────┼─────┼─────┼──────┤
+│  7   │  8  │  9  │  +   │
+├──────┼─────┼─────┼──────┤
+│  4   │  5  │  6  │  =   │
+├──────┼─────┼─────┼──────┤
+│  1   │  2  │  3  │ Ent  │
+├──────┼─────┼─────┼──────┤
+│  0   │  .  │CALC │BkSpc │
+└──────┴─────┴─────┴──────┘
 ```
 
-### 4.2 Capa Fn (mantené **Fn** presionada y pulsá la tecla)
-
-| Tecla | Función (capa Fn) |
-|---|---|
-| NumLk | Home (acceso rápido) |
-| `/` | Anterior pista |
-| `*` | Siguiente pista |
-| `-` | Silenciar |
-| `7` | Subir volumen |
-| `8` | Reproducir / Pausar |
-| `9` | Detener |
-| `+` | Bajar volumen |
-| `4` `5` `6` `=` | Flechas ← ↓ ↑ → |
-| `1` `2` `3` | Inicio · Fin · Re Pág |
-| `Ent` | Av Pág |
-| `0` | Tabulador |
-| `.` | Punto |
-| `Esc` | **Abrir/cerrar calculadora** |
+- **CALC** (inferior izquierda): abre y cierra la **calculadora**.
+- **BkSpc** (inferior derecha): retroceso en el host; en la calculadora **borra el
+  último dígito**.
 
 ## 5. Encoder rotativo (EC11)
 
-| Acción | Función |
-|---|---|
-| Girar | Subir / bajar **volumen** |
-| Presionar | En calculadora: cambia el modo **DEC → HEX → BIN** |
+| Acción | Modo teclado | Modo menú | Modo calculadora |
+|---|---|---|---|
+| **Girar** | Volumen | Navegar / ajustar valor | Volumen |
+| **Presionar (SW)** | Abre el menú | Seleccionar / confirmar | Cambia base DEC → HEX → BIN |
+
+> En el menú de ajustes (Pantalla → Encoder) podés **invertir el sentido** del giro.
 
 ## 6. Pantalla OLED
 
-- **Línea 1 (estado):** `BLE:Y USB:Y DEC +87%` — indica conexión BLE, conexión USB,
-  modo de calculadora y batería (el `+` marca que está cargando).
-- **Línea 2 (principal):** valor de la calculadora, o el nombre del dispositivo /
-  indicador de capa Fn cuando la calculadora está cerrada.
+- **Modo teclado (HUD):** `BLE:Y USB:Y 87%` — conexión BLE, conexión USB y batería
+  (el `+` marca que está cargando).
+- **Modo calculadora:** `Calc DEC` + el valor; el SW del encoder cicla la base.
+- **Modo menú:** lista de opciones; el cursor `>` indica la selección.
 
 ## 7. Calculadora
 
-1. Abrí la calculadora con **Fn + Esc** (tecla de la esquina inferior derecha).
-2. Escribí con las teclas del numpad: dígitos, `.`, `+ − * /`, y `=` (o `Ent`) para
-   el resultado.
-3. `Esc` borra todo (sin Fn).
+1. Abrí la calculadora con la tecla **CALC**.
+2. Escribí con las teclas del numpad: dígitos, `+ − * /`, y `=` (o `Ent`) para el
+   resultado.
+3. **BkSpc** borra el último dígito.
 4. Con el **botón del encoder** cambiás de base: DEC → HEX → BIN.
-5. Cerrá la calculadora con **Fn + Esc** de nuevo.
+5. Cerrá la calculadora con **CALC** de nuevo (al reabrir, queda en cero).
 
-> *(fase 2+)* Memoria M+/M−/MR/MC, historial con el encoder y envío del resultado al
-> host (pegado automático).
+> Cuando la calculadora está abierta, las teclas **no** se envían al host: solo
+> alimentan el motor de cálculo.
 
-## 8. Batería y carga
+## 8. Menú de ajustes
+
+1. Presioná el **encoder** (en modo teclado) para abrir el menú.
+2. **Girá** para mover el cursor, **presioná** para entrar/seleccionar.
+3. Opciones:
+
+| Ítem | Qué hace |
+|---|---|
+| **Info** | Datos del dispositivo: batería (mV y %), estado de carga, temperatura del chip, MAC BLE, versión de firmware y uptime. |
+| **Pantalla → Contraste** | Brillo del OLED (0–255). Aplicá y confirmá con el SW. |
+| **Encoder → Invertir** | Invierte el sentido del giro (No/Sí). |
+| **Sleep → Timeout** | Apagado / 30s / 5min / 10min de inactividad. *(fase 2+): además apaga la pantalla y duerme.* |
+| **Salir** | Vuelve al modo teclado. |
+
+Los ajustes quedan **guardados** (se restauran al reiniciar).
+
+## 9. Batería y carga
 
 - **Indicador de carga:** mientras está cargando, la pantalla muestra `+` junto al
   porcentaje.
@@ -117,20 +122,20 @@ El Numpad-20 es un **teclado numérico auxiliar** (20 teclas) con:
 > *(fase 2+)* Aviso de batería baja (<20 %), apagado de pantalla por inactividad y
 > sleep profundo.
 
-## 9. Solución de problemas
+## 10. Solución de problemas
 
 | Problema | Solución |
 |---|---|
 | No aparece como teclado USB | Probá otro cable (debe ser de datos), otro puerto. Reflasheá el firmware. |
 | No aparece como `Numpad-20` en BLE | Cerra la app de Bluetooth del host, olvidá el dispositivo anterior y volvé a buscar. |
-| Las teclas no escriben | Verificá que la conexión esté activa (`BLE:Y` o `USB:Y` en pantalla). |
+| Las teclas no escriben | Verificá que la conexión esté activa (`BLE:Y` o `USB:Y` en pantalla). Si el menú o la calculadora están abiertos, las teclas no se envían al host: cerrálos. |
 | El dispositivo no inicia | Batería descargada → conectalo a USB. |
 | Se enciende pero no responde | Mantené `BOOT` presionado mientras reiniciás para entrar en modo de descarga (para flashear). |
 
-## 10. Estado del proyecto
+## 11. Estado del proyecto
 
-- **Firmware actual:** primera versión compilada con éxito (ESP-IDF 5.4). Pendiente de
-  validación en hardware real.
+- **Firmware actual:** v0.2 compilado con éxito (ESP-IDF 5.4), sin capa Fn y con menú
+  de ajustes. Pendiente de validación en hardware real.
 - **Hardware:** aún no adquirido/ensamblado.
 - Detalles técnicos en [docs/02-hardware.md](02-hardware.md) y
   [docs/03-firmware.md](03-firmware.md).

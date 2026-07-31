@@ -39,14 +39,14 @@
 ├────────┼──────┼──────┼──────┤
 │   1    │  2   │  3   │ Ent  │   Fila 4
 ├────────┼──────┼──────┼──────┤
-│   0    │  .   │  Fn  │ Esc  │   Fila 5
+│   0    │  .   │ CALC │BkSpc │   Fila 5
 └────────┴──────┴──────┴──────┘
 ```
 
 - La columna de la derecha es ideal para el **encoder** si se quiere integrado en el
   gabinete (o como tecla adicional).
-- `Fn` mantiene pulsada la capa alterna (media keys, atajos).
-- `Esc` puede funcionar además como **toggle de calculadora** (ver `04`).
+- `CALC` (fila 5, col 2) abre/cierra la **calculadora**; `BkSpc` es retroceso (en la
+  calculadora borra el último dígito). No hay capa Fn.
 
 ## 3. Matriz de teclas
 

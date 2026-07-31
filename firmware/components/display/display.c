@@ -107,7 +107,12 @@ static void fb_char(int x, int y, char c)
     }
 }
 
-static void fb_text(int x, int y, const char *s)
+void display_begin(void)
+{
+    fb_clear();
+}
+
+void display_text(int x, int y, const char *s)
 {
     for (int i = 0; s[i] != '\0' && i < (DISPLAY_WIDTH - x) / (FONT_W + 1); i++) {
         fb_char(x + i * (FONT_W + 1), y, s[i]);
@@ -188,7 +193,6 @@ void display_set_brightness(uint8_t level)
 void display_update(void)
 {
     fb_clear();
-    fb_text(0, 0, apps_status_line());
-    fb_text(0, 16, apps_calc_line());
+    apps_render();
     fb_flush();
 }

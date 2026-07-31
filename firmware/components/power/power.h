@@ -15,6 +15,7 @@ typedef struct {
 } power_config_t;
 
 esp_err_t power_init(const power_config_t *cfg);
+int power_battery_millivolts(void);
 int power_battery_percent(void);
 bool power_is_charging(void);
 bool power_is_charging_done(void);

@@ -9,24 +9,27 @@ El firmware es una **máquina de estados** pequeña y clara:
 
 ```
                 ┌─────────────────────────────────────────────┐
-                │  main loop (task, cada ~5-10 ms)             │
+                │  main loop (task, cada ~5 ms)               │
                 │                                             │
-  [interrupción]│  ┌─────────┐   ┌────────┐   ┌───────────┐   │
-  GPIO / timer  │  │ matrix  │──►│ keymap │──►│ hid_route │──►│─► USB HID
-  encoder IRQ ──┼─►│ scan    │   │ layers │   │ (estado   │   │─► BLE HID
-                │  │ debounce│   │ taphold│   │ compartido)│  │
-                │  └─────────┘   └────────┘   └───────────┘   │
-                │        │            │                       │
-                │        ▼            ▼                       │
-                │  ┌─────────┐   ┌────────────┐               │
-                │  │  apps   │◄──│  display   │               │
-                │  │(calc...)│   │  UI/HUD    │               │
-                │  └─────────┘   └────────────┘               │
-                │        │            │                       │
-                │  ┌─────────┐   ┌────────────┐               │
-                │  │  power  │──►│ (ADC batería,│              │
-                │  │  mgmt   │   │  sleep)     │              │
-                │  └─────────┘   └────────────┘               │
+                │  ┌─────────┐   ┌────────┐   ┌───────────┐   │
+                │  │ matrix  │──►│ keymap │──►│ hid_route │──►│─► USB HID
+                │  │ scan    │   │ (1 capa)│  │ (estado   │   │─► BLE HID
+                │  │ debounce│   └────────┘   │ compartido)│  │
+                │  └─────────┘                 └───────────┘   │
+                │        │                                     │
+                │        ▼                                     │
+                │  ┌─────────────┐   encoder (giro/SW)         │
+                │  │    apps     │◄──────────────┘             │
+                │  │ TECLADO │   │                             │
+                │  │ MENU    │   │   ┌────────┐                │
+                │  │ CALC    │───│──►│ display │ (SH1106)      │
+                │  └─────────────┘   └────────┘                │
+                │        │            ▲                        │
+                │  ┌─────────┐   ┌────────────┐                │
+                │  │  power  │──►│ settings   │                │
+                │  │ (ADC    │   │ (NVS)      │                │
+                │  │  batería)│  └────────────┘                │
+                │  └─────────┘                                 │
                 └─────────────────────────────────────────────┘
 ```
 
@@ -39,16 +42,19 @@ esp32-KB-fw/
 ├── partitions.csv
 ├── main/
 │   ├── CMakeLists.txt
-│   ├── app_main.c          ← init + main loop
+│   ├── app_main.c          ← init + main loop + despacho del encoder
 │   ├── matrix.c/.h         ← scan 5×4 + debounce
-│   ├── keymap.c/.h         ← capas, tap-hold, keycodes
-│   └── hid_route.h         ← API de envío de teclas
+│   ├── keymap.c/.h         ← keymap de 1 sola capa (keycodes HID)
+│   ├── encoder.c/.h        ← EC11: cuadratura + SW con debounce
+│   └── hid_route.c/.h      ← API de envío a USB y BLE
 └── components/
-    ├── hid_usb/            ← TinyUSB: HID keyboard + consumer
+    ├── hid_usb/            ← TinyUSB: HID keyboard
     ├── hid_ble/            ← Bluedroid esp_hidd: BLE HID keyboard
-    ├── display/            ← SH1106 + UI (HUD, calculadora, menú)
-    ├── apps/               ← framework de apps + calculadora
-    └── power/              ← batería, carga, sleep, wake
+    ├── display/            ← SH1106 + primitivas de dibujo (texto)
+    ├── apps/               ← modos TECLADO/MENÚ/CALC + calculadora + menú
+    ├── settings/           ← persistencia en NVS (contraste, encoder, sleep)
+    ├── power/              ← batería, carga, sleep, wake
+    └── keycodes/           ← constantes de keycodes HID y especiales
 ```
 
 ### Por qué componentes separados
@@ -68,13 +74,16 @@ Tareas FreeRTOS:
 | `usb_task` (TinyUSB) | — | — | Callbacks USB (provee IDF/TinyUSB) |
 | `ble_task` (Bluedroid) | — | — | Stack BLE (provee IDF) |
 
-El **main loop** corre un ciclo de escaneo cada 5-10 ms:
+El **main loop** corre un ciclo de escaneo cada 5 ms:
 
 ```c
 while (1) {
-    matrix_scan();        // lee filas/columnas, aplica debounce
-    keymap_process();     // resuelve capas/tap-hold → lista de keycodes
-    hid_route_report();   // empuja el estado compartido a USB y/o BLE
+    matrix_scan();                 // lee filas/columnas, aplica debounce
+    // teclas nuevas → apps (calculadora) o toggle de CALC
+    // encoder: giro → apps_encoder_turn() o volumen;
+    //           SW → apps_encoder_press() (abre menú / confirma / base)
+    keymap_build_report(pressed, &kbd);   // solo si modo TECLADO
+    hid_route_update(&kbd);               // empuja el estado a USB y/o BLE
     vTaskDelay(5ms);
 }
 ```
@@ -87,36 +96,26 @@ while (1) {
   mantiene estable N muestras (típico 5 muestras @ 10 ms = 50 ms de estabilización,
   ajustable a ~20 ms para MX).
 - Salida: `uint32_t key_state` (bit por tecla) + evento de **flanco** (press/release)
-  para el encoder y tap-hold.
+  para el loop principal (toggle de CALC, calculadora).
 
-## 5. `keymap` — capas y tap-hold
+## 5. `keymap` — una sola capa
 
-Estructura de datos: `uint16_t keymap[2][20]` (2 capas × 20 teclas). Cada entrada es un
-**keycode HID** (o un keycode especial para Fn/tap-hold/macro).
-
-- **Capa 0 (base)**: layout numpad.
-- **Capa 1 (Fn)**: media keys, navegación, atajos.
-- **Tap-hold**: una tecla puede tener doble comportamiento según se toque o se mantenga
-  (ej. `.` al tocar, `,` al mantener — útil para cambiar separador decimal por región).
-
-Ejemplo de tabla de keycodes (fragmento):
+Estructura de datos: `uint16_t keymap[20]` (20 teclas, **1 sola capa**). Cada entrada es
+un **keycode HID** o un keycode especial (`KC_CALC` abre/cierra la calculadora; nunca se
+envía al host).
 
 ```c
-static const uint16_t keymap[2][20] = {
-    // Capa 0 (base)
-    { KC_NUM, KC_KP_SLASH, KC_KP_ASTERISK, KC_KP_MINUS,
-      KC_KP_7, KC_KP_8,    KC_KP_9,        KC_KP_PLUS,
-      KC_KP_4, KC_KP_5,    KC_KP_6,        KC_EQL,
-      KC_KP_1, KC_KP_2,    KC_KP_3,        KC_KP_ENTER,
-      KC_KP_0, KC_PDOT,    KC_FN,          KC_ESC },
-    // Capa 1 (Fn)
-    { KC_MSEL, KC_MPRV,    KC_MNXT,        KC_MUTE,
-      KC_VOLD, KC_VOLU,    KC_MSTP,        KC_MPLY,
-      KC_LEFT, KC_DOWN,    KC_UP,          KC_RGHT,
-      KC_HOME, KC_END,     KC_PGUP,        KC_PGDN,
-      KC_TAB,  KC_DOT,     KC_NO,          KC_CALC },
+static const uint16_t s_keymap[MATRIX_KEYS] = {
+    KC_HID(HID_KP_NUMLOCK), KC_HID(HID_KP_DIVIDE),   KC_HID(HID_KP_MULTIPLY), KC_HID(HID_KP_SUBTRACT),
+    KC_HID(HID_KP_7),       KC_HID(HID_KP_8),        KC_HID(HID_KP_9),        KC_HID(HID_KP_ADD),
+    KC_HID(HID_KP_4),       KC_HID(HID_KP_5),        KC_HID(HID_KP_6),        KC_HID(HID_KP_EQUAL),
+    KC_HID(HID_KP_1),       KC_HID(HID_KP_2),        KC_HID(HID_KP_3),        KC_HID(HID_KP_ENTER),
+    KC_HID(HID_KP_0),       KC_HID(HID_KP_DOT),      KC_CALC,                 KC_HID(HID_BACKSPACE),
 };
 ```
+
+> Decisión de diseño (v0.2): se eliminó la **capa Fn** y el **tap-hold**. Las teclas 18/19
+> pasan a ser **CALC** (toggle de calculadora) y **Backspace**.
 
 ## 6. `hid_route` — estado compartido USB+BLE
 
@@ -137,8 +136,9 @@ void hid_route_report(const hid_report_t *rpt);
 - Cada transporte mantiene su propio buffer de reporte (TinyUSB y BLE no comparten
   buffers de forma segura), pero **el origen de verdad es único**: el estado de teclas.
 - Si ambos están activos, se envía a los dos → sin dobles eventos en el host.
-- La **tecla Fn** nunca se envía al host (es local).
-- Soporte opcional de **media keys** (consumer report) para la capa Fn y el encoder.
+- La **tecla CALC** nunca se envía al host (es local, toggle de calculadora).
+- El **volumen del encoder** se envía como consumer report (evento puntual vía
+  `hid_route_consumer_event()`, sin estado persistente).
 
 ## 7. `hid_usb` — TinyUSB
 
@@ -160,33 +160,45 @@ void hid_route_report(const hid_report_t *rpt);
 
 ## 9. `display` — SH1106 + UI
 
-- Driver propio por I2C (módulo SH1106/SSD1306).
-- Tres pantallas controladas por el estado del sistema:
+- Driver propio por I2C (módulo SH1106/SSD1306). Expone primitivas
+  (`display_begin`, `display_text`) y `display_update()` delega el render a `apps_render()`.
+- Tres pantallas controladas por el modo del sistema (`apps_mode()`):
 
-  1. **HUD / status**: batería (%), modo (USB/BLE/ambos), última tecla enviada,
-     reloj/stopwatch. Es la pantalla por defecto.
-  2. **Calculadora**: dígitos grandes (~32 px), línea de operación, resultado,
-     memoria. Se activa al togglear a modo calculadora.
-  3. **Menú de configuración** (opcional, fase 2+): brillo, separador decimal,
-     modo de sleep.
+  1. **HUD / status** (modo TECLADO): batería (%), estado de carga, conexión USB/BLE.
+  2. **Calculadora** (modo CALC): línea de modo (DEC/HEX/BIN) + valor.
+  3. **Menú de configuración** (modo MENÚ): navegado con el encoder.
 
-- El encoder navega menús y la calculadora edita números (scrub).
+- El encoder navega menús; en calculadora su pulsador cicla la base.
 
-## 10. `apps` — calculadora standalone
+## 10. `apps` — modos, calculadora y menú
 
-Framework de "apps" simple: cada app recibe eventos de teclas y produce una pantalla.
+Componente central que mantiene el **modo** del sistema (`APP_KEYBOARD`, `APP_MENU`,
+`APP_CALC`) y el render completo (`apps_render()`).
 
-**Calculadora**:
-- Entrada: dígitos, `+ − * / =`, punto, `Esc` (borra), Enter.
-- **Notación estándar** (con operador de dos operandos y acumulador), igual a una
-  calculadora de escritorio.
-- **Modos**: DEC, HEX, BIN (cambio de base en la calculadora).
-- **Memoria**: M+, M−, MR, MC (persistida en RAM; opcional NVS).
-- **Historial**: últimas N operaciones (scroll con encoder).
-- El resultado puede **enviarse al host** con una tecla (pegado automático vía HID)
-  — muy útil para "tipiar" el resultado en una planilla.
+**Calculadora** (modo CALC, abierto con la tecla `CALC`):
+- Entrada: dígitos, `+ − * / =`, Enter; **Backspace = borra el último dígito**.
+- **Notación estándar** (operador de dos operandos con acumulador).
+- **Modos**: DEC, HEX, BIN (ciclo con el pulsador del encoder).
+- Sin memoria ni historial (descartado en el re-scope v0.2).
 
-## 11. `power` — energía y sleep
+**Menú de ajustes** (modo MENÚ, abierto con el pulsador del encoder):
+```
+Info       → batería (mV/%), carga, temp del chip, MAC BLE, versión, uptime
+Pantalla   → Contraste (0–255, aplica al OLED)
+Encoder    → Invertir sentido (Sí/No)
+Sleep      → Timeout (Apagado / 30s / 5min / 10min)
+Salir      → vuelve al modo TECLADO
+```
+- Giro: navegar / ajustar valor. Pulsador: entrar / confirmar / salir.
+- Los cambios se guardan en NVS vía el componente `settings`.
+
+## 11. `settings` — persistencia (NVS)
+
+- Namespace `numpad`; claves: `contrast` (u8), `enc_inv` (u8), `sleep_to` (u8).
+- `settings_load()` en el arranque; `settings_save()` al confirmar en el menú.
+- `g_settings` es un struct global que leen `app_main` (inversión del encoder) y `apps`.
+
+## 12. `power` — energía y sleep
 
 - **Medición de batería**: ADC1_CH0 (GPIO1) vía divisor. Conversión a porcentaje con
   una **curva Li-Ion calibrada** (ver `05-alimentacion-y-bateria.md`).
@@ -199,7 +211,7 @@ Framework de "apps" simple: cada app recibe eventos de teclas y produce una pant
 - **Aviso de batería baja**: < 20 % → icono en pantalla; < 10 % → parpadeo + opcional
   beep.
 
-## 12. Configuración (`sdkconfig`)
+## 13. Configuración (`sdkconfig`)
 
 Puntos clave a configurar:
 
@@ -212,17 +224,16 @@ CONFIG_PARTITION_TABLE_CUSTOM=y        # partición con OTA opcional
 CONFIG_FREERTOS_HZ=1000
 ```
 
-## 13. Flujo de datos completo (ejemplo: tocar "7")
+## 14. Flujo de datos completo (ejemplo: tocar "7")
 
 1. `matrix_scan()` detecta el press de la tecla 7 (fila 2, col 0).
 2. Debounce confirma el cambio de estado.
-3. `keymap_process()` resuelve la tecla → `KC_KP_7` (o `KC_7` según preferencia).
-4. `hid_route_report()` agrega 7 a la lista de teclas presionadas.
-5. TinyUSB envía el report → la PC escribe "7".
-6. BLE envía el report → el teléfono escribe "7" (si está conectado).
-7. La pantalla HUD muestra el último keycode enviado.
+3. `keymap_resolve()` resuelve la tecla → `KC_HID(HID_KP_7)`.
+4. `keymap_build_report()` arma el reporte con las teclas presionadas.
+5. `hid_route_update()` lo envía a USB y BLE (si conectados) → el host escribe "7".
+6. La pantalla HUD muestra estado (batería, conexión).
 
-## 14. Build y flasheo
+## 15. Build y flasheo
 
 ```bash
 export IDF_PATH=~/esp/esp-idf   # ESP-IDF 5.x

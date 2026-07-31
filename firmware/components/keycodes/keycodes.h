@@ -3,16 +3,10 @@
 #include <stdint.h>
 
 #define KC_NO        0x0000u
-#define KC_FN        0x0001u
-#define KC_CALC      0x0002u
+#define KC_CALC      0x0001u
 #define KC_HID_BASE  0x0100u
-#define KC_CC_BASE   0x0200u
-
-#define KEY_FN_INDEX    18
-#define KEY_CALC_INDEX  19
 
 #define KC_HID(k)    (KC_HID_BASE | (uint16_t)(k))
-#define KC_CC(k)     (KC_CC_BASE | (uint16_t)(k))
 
 #define HID_ESC            0x29
 #define HID_ENTER          0x28
@@ -57,13 +51,3 @@
 
 #define CC_VOLUME_UP       0xE9
 #define CC_VOLUME_DOWN     0xEA
-#define CC_MUTE            0xE2
-#define CC_PLAY            0xB0
-#define CC_PAUSE           0xB1
-#define CC_PLAY_PAUSE      0xCD
-#define CC_STOP            0xB7
-#define CC_SCAN_NEXT       0xB5
-#define CC_SCAN_PREVIOUS   0xB6
-#define CC_FAST_FORWARD    0xB3
-#define CC_REWIND          0xB4
-#define CC_AC_HOME         0x223

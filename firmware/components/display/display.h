@@ -14,6 +14,8 @@ typedef struct {
 } display_config_t;
 
 esp_err_t display_init(const display_config_t *cfg);
+void display_begin(void);
+void display_text(int x, int y, const char *s);
 void display_update(void);
 void display_off(void);
 void display_on(void);

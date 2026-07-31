@@ -14,6 +14,7 @@
 #include "apps.h"
 #include "display.h"
 #include "power.h"
+#include "settings.h"
 #include "hid_usb.h"
 #include "hid_ble.h"
 
@@ -22,15 +23,12 @@ static const char *TAG = "numpad";
 static void encoder_event_cb(encoder_dir_t dir, void *arg)
 {
     (void)arg;
-    switch (dir) {
-    case ENC_CW:
-        hid_route_consumer_event(CC_VOLUME_UP);
-        break;
-    case ENC_CCW:
-        hid_route_consumer_event(CC_VOLUME_DOWN);
-        break;
-    default:
-        break;
+    bool cw = (dir == ENC_CW);
+    if (g_settings.invert_encoder) {
+        cw = !cw;
+    }
+    if (!apps_encoder_turn(cw)) {
+        hid_route_consumer_event(cw ? CC_VOLUME_UP : CC_VOLUME_DOWN);
     }
 }
 
@@ -43,6 +41,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    settings_load();
     hid_route_init();
     apps_init();
 
@@ -64,13 +63,13 @@ void app_main(void)
         .addr = OLED_I2C_ADDR,
     };
     ESP_ERROR_CHECK(display_init(&disp_cfg));
+    display_set_brightness(g_settings.contrast);
 
     matrix_init();
     encoder_init();
     encoder_set_callback(encoder_event_cb, NULL);
 
     uint32_t prev_pressed = 0;
-    bool prev_fn_active = false;
     int last_battery = -1;
     TickType_t last_display = 0;
 
@@ -79,7 +78,6 @@ void app_main(void)
     while (1) {
         matrix_scan();
         uint32_t pressed = matrix_get_state();
-        bool fn_active = (pressed & (1u << KEY_FN_INDEX)) != 0;
 
         uint32_t diff = pressed ^ prev_pressed;
         if (diff) {
@@ -88,28 +86,25 @@ void app_main(void)
                 if ((diff & mask) == 0 || (pressed & mask) == 0) {
                     continue;
                 }
-                uint16_t kc = keymap_resolve(i, fn_active);
+                uint16_t kc = keymap_resolve(i);
+                if (apps_mode() == APP_MENU) {
+                    continue;
+                }
                 if (kc == KC_CALC) {
                     apps_toggle_calc();
-                } else if (kc != KC_FN && kc != KC_NO) {
+                } else if (kc != KC_NO) {
                     apps_on_key(kc);
                 }
             }
         }
         prev_pressed = pressed;
 
-        if (fn_active != prev_fn_active) {
-            apps_set_fn(fn_active);
-            prev_fn_active = fn_active;
-        }
-
         hid_report_t kbd;
-        uint16_t consumer = 0;
-        keymap_build_report(pressed, fn_active, &kbd, &consumer);
-        hid_route_update(fn_active, &kbd, consumer);
+        keymap_build_report(apps_mode() == APP_KEYBOARD ? pressed : 0, &kbd);
+        hid_route_update(&kbd);
 
         if (encoder_poll_switch()) {
-            apps_calc_mode_cycle();
+            apps_encoder_press();
         }
 
         if (xTaskGetTickCount() - last_display >= pdMS_TO_TICKS(250)) {

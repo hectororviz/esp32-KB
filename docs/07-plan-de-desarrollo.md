@@ -71,35 +71,41 @@ falta, migrar a NimBLE. Prueba de concepto ya existe en `paul356/esp32_keyboard`
 
 ---
 
-## Fase 3 — Matriz, keymap y capa Fn
+## Fase 3 — Matriz y keymap
 
 **Objetivo**: las 20 teclas reales y el encoder funcionan con el layout propuesto.
 
 Tareas:
 - [ ] Cablear matriz 5×4 con diodos.
-- [ ] Implementar scan + debounce (`matrix.c`).
-- [ ] Definir `keymap[2][20]` (base + Fn) y tap-hold básico.
-- [ ] Integrar el encoder (A/B/SW) como entrada.
+- [x] Implementar scan + debounce (`matrix.c`).
+- [x] Definir `keymap[20]` de una sola capa (tecla 18 = `CALC`, 19 = `Backspace`).
+- [x] Integrar el encoder (A/B/SW) como entrada: giro = volumen, SW = menú/base.
 - [ ] Probar ghosting presionando varias teclas a la vez.
 
-**Criterio de aceptación**: cada tecla envía su keycode correcto por USB y BLE; la capa
-Fn (manteniendo Fn) funciona; el encoder genera eventos de giro y pulsación.
+**Criterio de aceptación**: cada tecla envía su keycode correcto por USB y BLE; el
+encoder genera eventos de giro y pulsación.
 
 ---
 
-## Fase 4 — Pantalla y calculadora
+## Fase 4 — Pantalla, calculadora y menú
 
-**Objetivo**: OLED con HUD de estado + calculadora standalone.
+**Objetivo**: OLED con HUD de estado + calculadora standalone + menú de ajustes.
 
 Tareas:
-- [ ] Driver SH1106/SSD1306 por I2C (fuente para dígitos grandes).
-- [ ] Pantalla HUD: batería, modo de conexión, última tecla.
-- [ ] Toggle a **modo calculadora** (tecla `CALC`/`Esc`): teclas → motor de cálculo.
-- [ ] Motor de cálculo: entrada, `+ − * / =`, punto, borrar, memoria M+/M−/MR/MC.
-- [ ] Modos DEC/HEX/BIN y "pegar resultado" por HID (opcional en esta fase).
+- [x] Driver SH1106/SSD1306 por I2C (fuente 5×7).
+- [x] Pantalla HUD: batería, modo de conexión.
+- [x] Toggle a **modo calculadora** (tecla `CALC`): teclas → motor de cálculo.
+- [x] Motor de cálculo: entrada, `+ − * / =`, punto, Backspace (borra dígito).
+- [x] Modos DEC/HEX/BIN (ciclo con el pulsador del encoder).
+- [x] **Menú de ajustes** (modo MENÚ, encoder): Info, Pantalla (contraste), Encoder
+      (invertir), Sleep (timeout); persistido en NVS.
+- [ ] "Pegar resultado" por HID (opcional).
+
+> Re-scope v0.2: se descartaron **memoria M+/M−/MR/MC**, **historial** y el borrado con
+> `Esc` (no hay tecla Esc en el layout).
 
 **Criterio de aceptación**: sin host conectado, se puede operar la calculadora en la
-pantalla; al salir del modo calculadora, las teclas vuelven a funcionar como teclado.
+pantalla; el menú guarda y restaura sus ajustes al reiniciar.
 
 ---
 
@@ -125,11 +131,12 @@ días (ver cálculos en `05`).
 **Objetivo**: completar el alcance v1 sugerido en `04-ideas-funciones.md`.
 
 Tareas:
-- [ ] Encoder multifunción (volumen/scroll/zoom/scrub).
-- [ ] Media keys en capa Fn.
-- [ ] Macros/snippets de texto (tabla en firmware).
-- [ ] Tap-hold completo (`.`/`,`, Enter/Shift, `=`/NumLock).
+- [ ] Encoder multifunción (velocidad de giro, scroll/zoom opcionales).
 - [ ] "Pegar resultado" desde la calculadora (envío HID).
+- [ ] Ajustes avanzados en el menú (calibración de batería, sleep configurable).
+
+> Re-scope v0.2: se descartaron **media keys (capa Fn)**, **macros/snippets** y
+> **tap-hold**.
 
 **Criterio de aceptación**: las funciones del catálogo P1 operativas y estables en uso
 diario.

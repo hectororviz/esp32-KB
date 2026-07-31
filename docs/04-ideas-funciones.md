@@ -12,6 +12,24 @@
 
 ---
 
+## Decisiones de alcance (v0.2 — re-scope)
+
+En la v0.2 se **descartaron** estas ideas (no se planifican):
+
+- ~~Capa Fn~~ (y con ella: media keys, atajos de productividad, multi-host por Fn).
+- ~~Macros / snippets de texto~~.
+- ~~Tap-hold~~.
+- ~~Memoria M+/M−/MR/MC~~ e ~~historial~~ en la calculadora.
+
+Se **agregó** en su lugar:
+
+- **Menú de ajustes en pantalla** (modo MENÚ) operado con el encoder: `Info`,
+  `Pantalla` (contraste), `Encoder` (invertir), `Sleep` (timeout). Ver `docs/03`.
+
+El resto del catálogo queda como referencia a futuro.
+
+---
+
 ## P0 — Núcleo
 
 ### 1. Teclado numérico HID (USB + BLE)
@@ -112,15 +130,16 @@
 | # | Función | Valor | Esfuerzo | Prioridad |
 |---|---|---|---|---|
 | 1 | Numpad HID USB+BLE | crítico | medio | P0 |
-| 2 | Capa Fn | alto | bajo | P0 |
+| 2 | ~~Capa Fn~~ (descartada) | — | — | — |
 | 3 | Calculadora standalone | alto | medio | P0 |
 | 4 | HUD de estado | medio | bajo | P0 |
 | 5 | Sleep/wake | alto | bajo | P0 |
-| 6 | Macros de texto | alto | bajo | P0 |
+| 6 | ~~Macros de texto~~ (descartada) | — | — | — |
 | 7 | Encoder multifunción | alto | medio | P1 |
-| 8 | Tap-hold | medio | bajo | P1 |
-| 9 | Media keys | medio | bajo | P1 |
-| 10 | Multi-host | medio | medio | P1 |
+| 7b | **Menú de ajustes en pantalla** | alto | medio | **P0 (implementado v0.2)** |
+| 8 | ~~Tap-hold~~ (descartado) | — | — | — |
+| 9 | ~~Media keys~~ (descartadas) | — | — | — |
+| 10 | ~~Multi-host~~ (descartado) | — | — | — |
 | 11 | Pegar resultado | alto | bajo | P1 |
 | 12 | Atajos productividad | medio | bajo | P1 |
 | 13 | Modo mouse | bajo | bajo | P2 |
@@ -136,6 +155,6 @@
 
 ## Sugerencia de alcance v1
 
-**P0 completo + Encoder + Tap-hold + Media keys + Pegar resultado.** Eso ya entrega un
-numpad profesional, inalámbrico, con calculadora útil y gran parte del confort de uso.
-Lo demás se va sumando sin romper el núcleo.
+**P0 completo + Encoder + Menú de ajustes + Pegar resultado (opcional).** Eso ya entrega
+un numpad profesional, inalámbrico, con calculadora útil y ajustes en pantalla.
+El resto se va sumando sin romper el núcleo.

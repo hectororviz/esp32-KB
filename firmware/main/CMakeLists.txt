@@ -5,5 +5,5 @@ idf_component_register(
          "encoder.c"
          "hid_route.c"
     INCLUDE_DIRS "."
-    REQUIRES nvs_flash esp_timer driver keycodes
+    REQUIRES nvs_flash esp_timer driver keycodes settings
     PRIV_REQUIRES hid_usb hid_ble display apps power)
