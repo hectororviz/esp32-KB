@@ -130,7 +130,7 @@ eficiencia que una necesidad, pero igual se implementa (ver `03-firmware.md`).
 | Señal | Origen | GPIO | Lógica |
 |---|---|---|---|
 | `CHRG` | TP4056 | 2 | Bajo = cargando |
-| `STDBY` | TP4056 | 3 | Bajo = carga completa |
+| `STDBY` | TP4056 | 39 | Bajo = carga completa (GPIO3 es strapping; se usa 39) |
 | VBUS | USB-C 5 V (vía divisor) | 18 | Alto = cable conectado a algo |
 
 Combinaciones útiles:

@@ -16,5 +16,5 @@
 #define BATTERY_ADC_GPIO   GPIO_NUM_1
 #define BATTERY_ADC_CH     ADC_CHANNEL_0
 #define CHARGE_PIN         GPIO_NUM_2
-#define CHARGE_DONE_PIN    GPIO_NUM_3
+#define CHARGE_DONE_PIN    GPIO_NUM_39
 #define VBUS_PIN           GPIO_NUM_18

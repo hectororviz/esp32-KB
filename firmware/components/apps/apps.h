@@ -7,6 +7,7 @@ typedef enum {
     APP_KEYBOARD = 0,
     APP_MENU,
     APP_CALC,
+    APP_DIAG,
 } app_mode_t;
 
 void apps_init(void);
@@ -15,6 +16,8 @@ void apps_toggle_calc(void);
 bool apps_calc_active(void);
 app_mode_t apps_mode(void);
 const char *apps_calc_result_string(void);
+void apps_enter_diag(void);
+void apps_diag_set_keys(uint32_t pressed, uint8_t rows, uint8_t cols);
 
 bool apps_encoder_turn(bool cw);
 void apps_encoder_press(void);

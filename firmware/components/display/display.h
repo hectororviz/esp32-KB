@@ -20,3 +20,4 @@ void display_update(void);
 void display_off(void);
 void display_on(void);
 void display_set_brightness(uint8_t level);
+void display_test_pattern(void);

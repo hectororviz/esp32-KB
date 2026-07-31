@@ -88,7 +88,6 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     (void)handler_args;
     (void)base;
     esp_hidd_event_t event = (esp_hidd_event_t)id;
-    esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
 
     switch (event) {
     case ESP_HIDD_START_EVENT:

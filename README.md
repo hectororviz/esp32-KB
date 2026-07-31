@@ -10,7 +10,8 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 > target esp32s3, build verificado en esta máquina + CI en GitHub Actions). El hardware
 > aún no fue adquirido; queda pendiente la validación en placa real. El firmware usa
 > **una sola capa** de teclas (sin Fn), un **menú de ajustes** en pantalla operado con
-> el encoder, **sleep** por inactividad y **"pegar resultado"** de la calculadora.
+> el encoder, **sleep** por inactividad, **"pegar resultado"** de la calculadora y un
+> **modo Diagnóstico** (self-test) para validar la placa al recibirla.
 
 ---
 
@@ -22,7 +23,7 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 | Conexión al host | USB HID (cable) **y** Bluetooth LE HID (inalámbrico) |
 | Teclas | 20 switchs mecánicos en matriz 5×4 (layout numpad + CALC) |
 | Extras de entrada | Encoder rotativo EC11 (con pulsador) |
-| Pantalla | OLED 1.3" I2C (SH1106) |
+| Pantalla | OLED 1.3" I2C (SH1106) / 0.96" (SSD1306), configurable |
 | Alimentación | 18650 Li-Ion + módulo TP4056 + LDO 3.3 V |
 | Modo especial | **Calculadora standalone** con expresión en pantalla |
 | Framework | ESP-IDF 5.x (C) |
@@ -40,6 +41,8 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
 - **Pantalla de estado**: batería, carga, conexión USB/BLE y avisos de batería baja.
 - **Gestión de energía**: apagado de pantalla por inactividad, **light sleep** con wake
   por tecla/encoder/USB (validación de consumo pendiente de placa).
+- **Modo Diagnóstico** (self-test): matriz, encoder, batería y patrón OLED, accesible
+  desde el menú o con el SW del encoder al encender.
 
 ---
 
@@ -65,7 +68,8 @@ esp32-KB/
     ├── partitions.csv
     ├── main/                         app_main, matrix, keymap, encoder, hid_route
     └── components/                   hid_usb (TinyUSB), hid_ble (esp_hidd+GAP),
-                                      display (SH1106), apps (calculadora + menú),
+                                      display (SH1106/SSD1306, configurable),
+                                      apps (calculadora + menú + diag),
                                       settings (NVS), power (batería), keycodes
 ```
 
@@ -88,8 +92,8 @@ Puntos a revisar antes de flashear el hardware real:
 - `main/board_config.h` — GPIO map (filas, columnas, encoder, OLED, batería).
 - El **divisor de la batería** (`BATTERY_DIVIDER_RATIO`) en
   `components/power/power.c` según el hardware real.
-- El **offset de columnas** del SH1106 (`DISPLAY_COL_OFFSET`) en
-  `components/display/display.c` (típicamente 2 en paneles 1.3").
+- El **controlador OLED y su offset**: `idf.py menuconfig → Component config →
+  Display (OLED)` (SH1106 1.3" → offset 2, SSD1306 0.96" → offset 0).
 
 ---
 
@@ -102,7 +106,7 @@ Esquema general de interconexión (es el que está configurado en
                           ┌────────────────────────────┐
         Batería 18650 ────┤ BAT+      TP4056      BAT+ ├──── Batería
                           │ CHRG ─── GPIO2             │
-                          │ STDBY── GPIO3              │
+                          │ STDBY── GPIO39             │
                           │ IN   ◄── USB-C 5V          │
                           └─────┬──────────────────────┘
                                 │ 3.3V (vía LDO)
@@ -131,12 +135,13 @@ Tabla resumen (función → GPIO):
 | OLED SDA / SCL | 4 / 5 | I2C (400 kHz) | Dirección `0x3C`; pull-ups externos 4.7 kΩ |
 | Batería (medición) | 1 | ADC1_CH0 | Divisor 100k/100k → 3.3 V máx |
 | Carga activa (TP4056 CHRG) | 2 | Entrada, activo bajo | `0` = cargando |
-| Carga completa (TP4056 STDBY) | 3 | Entrada, activo bajo | `0` = carga completa |
+| Carga completa (TP4056 STDBY) | 39 | Entrada, activo bajo | `0` = carga completa (GPIO3 es strapping) |
 | VBUS detect | 18 | Entrada (divisor) | `1` = conectado a USB |
 | USB HID | 19 / 20 | USB nativo | D− / D+ — no usar para otra cosa |
 
-> Notas: `GPIO0`, `GPIO45`, `GPIO46` son strapping (no usar sin cuidado); `GPIO33–37`
-> suelen estar ocupados por PSRAM octal en esta placa. Detalle completo en
+> Notas: `GPIO0`, `GPIO3`, `GPIO45`, `GPIO46` son strapping (no usar sin cuidado);
+> `GPIO33–37` suelen estar ocupados por PSRAM octal en esta placa. GPIO seguros en la
+> DevKitC-1 N16R8 (habitualmente un clon): 1–21 y 38–42. Detalle completo en
 > [docs/02-hardware.md](docs/02-hardware.md).
 
 ---
@@ -159,10 +164,12 @@ Tabla resumen (función → GPIO):
 ## Próximos pasos
 
 - [ ] Adquirir componentes (ver BOM en `docs/02-hardware.md`).
-- [ ] Validar GPIO map con la placa de desarrollo elegida (PSRAM octal, strapping).
+- [x] Des-riesgo pre-compra: pinout de la placa verificado, `STDBY` movido a GPIO39,
+      **modo Diagnóstico** (self-test), OLED configurable y presupuesto de memoria
+      medido (IRAM al límite) — ver `docs/02` §1.3.
 - [x] Instalar ESP-IDF 5.4 y compilar `firmware/` (build verificado).
 - [ ] Construir el gabinete / PCB (fuera del alcance del firmware).
-- [ ] Probar firmware en hardware real y ajustar pines/offsets.
+- [ ] Probar firmware en hardware real (modo Diag primero) y ajustar pines/offsets.
 
 ---
 

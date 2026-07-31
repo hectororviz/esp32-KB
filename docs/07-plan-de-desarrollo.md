@@ -130,6 +130,25 @@ días (ver cálculos en `05`).
 
 ---
 
+## Fase 5.5 — Preparación pre-compra (des-riesgo, sin hardware)
+
+Tareas realizadas **antes de comprar** para reducir riesgos al recibir los componentes:
+
+- [x] Verificar pinout de la DevKitC-1 N16R8 (suele ser un clon con 2× USB-C): GPIO
+      seguros 1–21 y 38–42; strapping 0/3/45/46; PSRAM octal en 33–37. Detalles en
+      `docs/02` §1.3.
+- [x] Mover `CHARGE_DONE_PIN` (`STDBY` del TP4056) de **GPIO3 (strapping) → GPIO39**.
+- [x] **Modo Diagnóstico** (self-test): matriz, encoder, batería y patrón OLED; acceso
+      por el menú o con el SW del encoder al encender (salida por UART si la OLED falla).
+- [x] OLED configurable por menuconfig: **SH1106 (1.3", offset 2)** o **SSD1306
+      (0.96", offset 0)**, sin tocar código.
+- [x] Medir presupuesto de memoria con `idf.py size`: flash 0.83 MB / 6 MB (86 % libre),
+      DIRAM 32.6 %, **IRAM 99.99 %** (límite; no agregar ISR sin pasar a NimBLE).
+
+> Pendiente: flashear el primer binario en placa real y ejecutar el Diag.
+
+---
+
 ## Fase 6 — Extras de valor
 
 **Objetivo**: completar el alcance v1 sugerido en `04-ideas-funciones.md`.
@@ -137,8 +156,9 @@ días (ver cálculos en `05`).
 Tareas:
 - [x] Encoder con velocidad de giro (paso doble en giro rápido).
 - [x] "Pegar resultado" desde la calculadora (envío HID con NumLk).
-- [ ] Ajustes avanzados en el menú (calibración de batería, sleep configurable).
-- [ ] CI: build automático en GitHub Actions (v0.3).
+- [x] Ajustes avanzados en el menú (calibración de batería, sleep configurable).
+- [x] CI: build automático en GitHub Actions (v0.3) — matrix de build **SH1106** y
+      **SSD1306** (`.github/workflows/build.yml`).
 
 > Re-scope v0.2: se descartaron **media keys (capa Fn)**, **macros/snippets** y
 > **tap-hold**.
@@ -162,10 +182,10 @@ diario.
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| Coexistencia USB+BLE consume mucha RAM | Media | Alto | Migrar a NimBLE; recortar features |
+| Coexistencia USB+BLE consume mucha RAM | Media | Alto | **Medido**: entra (IRAM 99.99 %, DIRAM 32.6 %). Migrar a NimBLE si se agregan ISR |
 | ADC del S3 no lineal / ruidoso | Alta | Medio | Calibración multipunto + promediado |
 | Lectura de batería errónea durante carga | Alta | Medio | No medir con `CHRG` activo |
-| Pines ocupados por PSRAM octal | Media | Medio | Validar pinout de la placa antes de cablear |
+| Pines ocupados por PSRAM octal | Media | Medio | Validar pinout de la placa antes de cablear (hecho en §1.3 de docs/02) |
 | iOS no empareja | Baja | Bajo | Usar iOS 13+; single connection |
 | BLE HID en algunos Linux viejos | Baja | Bajo | Actualizar BlueZ; usar USB |
 | Bluedroid no soporta reinicio limpio tras sleep | Media | Medio | Deinit/init del stack al despertar |

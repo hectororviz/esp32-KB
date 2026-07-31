@@ -1,7 +1,7 @@
 # 09 — Manual de usuario (Numpad-20)
 
 > Manual orientado al usuario final del **Numpad-20**. Describe el comportamiento del
-> firmware actual (v0.2, compilado) y, donde corresponde, marca con *(fase 2+)* las
+> firmware actual (v0.3, compilado) y, donde corresponde, marca con *(fase 2+)* las
 > funciones previstas que aún no están implementadas.
 
 ---
@@ -109,9 +109,28 @@ El teclado tiene **una sola capa** (sin Fn):
 | **Pantalla → Contraste** | Brillo del OLED (0–255). Aplicá y confirmá con el SW. |
 | **Encoder → Invertir** | Invierte el sentido del giro (No/Sí). |
 | **Sleep → Timeout** | Apagado / 30s / 5min / 10min. Al cumplirse el tiempo sin uso, se **apaga la pantalla**; a los 5 min adicionales (sin USB ni BLE conectados) entra en **sleep** y se despierta con cualquier tecla, el pulsador del encoder o al conectar USB. |
+| **Diag** | Abre el **modo Diagnóstico** (self-test, ver §8.1). |
 | **Salir** | Vuelve al modo teclado. |
 
 Los ajustes quedan **guardados** (se restauran al reiniciar).
+
+## 8.1 Diagnóstico (self-test)
+
+Útil para **validar el hardware** al recibirlo o ante fallas. Se abre de dos formas:
+
+- Desde el menú: **Diag** (el SW del encoder avanza de página).
+- Al **encender con el SW del encoder presionado** (entra directo; ideal si la pantalla
+  no responde, porque los resultados también salen por **UART**).
+
+| Página | Qué muestra |
+|---|---|
+| **Matriz** | Grid 5×4; cada tecla enciende su celda (`#`) al presionarla y loguea por UART (`diag key[N]`). |
+| **Encoder** | Contador de pasos del giro y de pulsaciones del SW. |
+| **Batería** | Tensión (mV) y %, más los estados `CHRG`/`STDBY`/`VBUS` (0/1). |
+| **OLED** | Patrón de tablero en pantalla completa (valida el cableado del panel). |
+| **Salir** | `SW` vuelve al modo teclado. |
+
+En Diagnóstico las teclas **no** se envían al host.
 
 ## 9. Batería y carga
 
@@ -141,8 +160,8 @@ Los ajustes quedan **guardados** (se restauran al reiniciar).
 ## 11. Estado del proyecto
 
 - **Firmware actual:** v0.3 compilado con éxito (ESP-IDF 5.4): sin capa Fn, menú de
-  ajustes, sleep por inactividad y "pegar resultado". Pendiente de validación en
-  hardware real.
+  ajustes, sleep por inactividad, "pegar resultado" y **modo Diagnóstico** (self-test
+  pre-compra). Pendiente de validación en hardware real.
 - **Hardware:** aún no adquirido/ensamblado (ver lista de compra en `docs/02`).
 - Detalles técnicos en [docs/02-hardware.md](02-hardware.md) y
   [docs/03-firmware.md](03-firmware.md).

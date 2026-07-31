@@ -51,22 +51,53 @@ bajan comprando lotes). Ya cubiertos por `main/board_config.h`.
 > **Kit mínimo ≈ 35–55 USD.** Consejos:
 > - AliExpress: más barato, entrega 2–6 semanas. Amazon/MercadoLibre: más caro, rápido.
 > - Comprar **2× switchs y OLED** por si acaso (fallas/roturas son comunes).
-> - Verificar que el **OLED sea SH1106 de 1.3"** (el de 0.96" es SSD1306; el firmware
->   usa `DISPLAY_COL_OFFSET` distinto según panel).
+> - El **OLED** puede ser SH1106 (1.3") o SSD1306 (0.96"): el controlador y su offset de
+>   columnas se eligen por **menuconfig** (ver §5), sin tocar código.
 > - La placa DevKitC-1 N16R8 usa **PSRAM octal**: GPIO33–37 quedan ocupados (el pinout
 >   ya los evita).
 
 ### 1.2 Checklist al recibir
 
 - [ ] La placa tiene **USB nativo** (D+/D− = GPIO19/20) y **USB-C**.
-- [ ] Verificar pinout de la placa real: GPIO0/45/46 (strapping) y GPIO33–37 (PSRAM octal).
-- [ ] El OLED se ve correctamente; si no, ajustar `DISPLAY_COL_OFFSET` en
-      `components/display/display.c`.
-- [ ] Girar el encoder y confirmar el sentido esperado; si está invertido, usar el menú
-      `Encoder → Invertir` o el setting `enc_inv` en NVS.
-- [ ] Medir la batería con multímetro y calibrar `BATTERY_DIVIDER_RATIO` / la curva en
-      `components/power/power.c` (ver `docs/05`).
-- [ ] Probar los 20 switchs (flashear y escribir todas las teclas en un editor).
+- [ ] Verificar pinout de la placa real: GPIO0/3/45/46 (strapping) y GPIO33–37 (PSRAM octal).
+- [ ] Conectar la OLED y entrar al **modo Diag** (SW del encoder al encender): en la
+      página "matriz" se ve un patrón de tablero que valida el cableado del panel.
+- [ ] Si el OLED se ve corrido/desplazado, elegir el controlador correcto por
+      `idf.py menuconfig` (`Component config → Display (OLED)` → SH1106 o SSD1306); el
+      offset (`DISPLAY_COL_OFFSET`) se ajusta solo (2 vs 0).
+- [ ] Girar el encoder en Diag → "encoder" y confirmar el conteo de pasos y SW.
+- [ ] En Diag → "batería", verificar mV/%, CHRG, STDBY y VBUS contra el multímetro y
+      calibrar `BATTERY_DIVIDER_RATIO` / la curva en `components/power/power.c` (ver `docs/05`).
+- [ ] Probar los 20 switchs en Diag → "matriz" (cada tecla enciende su celda y loguea por
+      UART) y escribir todas las teclas en un editor.
+
+### 1.3 Compatibilidad de la placa DevKitC-1 N16R8
+
+La "ESP32-S3-DevKitC-1 **N16R8**" (16 MB flash / 8 MB PSRAM) que aparece en AliExpress es
+típicamente un **clon** (ej. YD-ESP32-S3) con las mismas dimensiones que el DevKitC-1
+original. Características típicas a verificar al recibir:
+
+- **2× USB-C**: uno conectado a un **puente UART** (CH343/CP2102) para **flashear y
+  monitor** (aparece como `ttyACM0`/`ttyUSB0`), y otro conectado al **USB nativo**
+  (GPIO19/20) que es el que se usa como **HID**.
+- **LED RGB** en **GPIO48** (rev v1.0) o **GPIO38** (rev v1.1): no usar GPIO38/48.
+- **GPIO seguros** en esta placa: **1–21 y 38–42** (siempre que no haya PSRAM en 33–37,
+  lo cual el pinout actual ya evita).
+- **Strapping**: GPIO0, GPIO3, GPIO45 y GPIO46. El pinout evita todos; el `STDBY` del
+  TP4056 fue movido de GPIO3 (strapping) a **GPIO39**.
+
+#### Presupuesto de memoria (medido, ESP-IDF 5.4, `idf.py size`)
+
+| Recurso | Uso | Total | Nota |
+|---|---|---|---|
+| Flash (app) | ~0.83 MB (imagen ~852 KB) | 6 MB (partición app) | 86 % libre |
+| RAM estática (DIRAM) | 111 KB (32.6 %) | 341 KB | Holgada |
+| **IRAM** | 16 383 B (99.99 %) | 16 384 B | **Crítico**: Bluedroid ocupa casi todo; no agregar ISR/código IRAM sin migrar a NimBLE |
+
+La memoria disponible confirma que la coexistencia **USB + BLE** entra (el stack
+Bluedroid consume ~280 KB de flash y la mayor parte de la IRAM). La IRAM quedó al límite:
+cualquier feature que requiera ISR en IRAM deberá migrar a **NimBLE** primero (ver
+`docs/06`).
 
 ## 2. Layout de teclas (20 teclas, todo 1×1)
 
@@ -118,8 +149,8 @@ teclas a la vez).
 
 > ⚠️ Reglas del S3 a respetar:
 > - **GPIO19/20 = USB D−/D+**: NO usar (van al conector USB-C).
-> - **Strapping**: GPIO0 (boot), GPIO45 (voltaje de flash), GPIO46 (ROM msg): evitar o
->   tratar con cuidado.
+> - **Strapping**: GPIO0 (boot), GPIO3 (JTAG), GPIO45 (voltaje de flash), GPIO46 (ROM
+>   msg): evitar o tratar con cuidado.
 > - **GPIO33-37** suelen estar ocupados por **flash/PSRAM octal** en placas con PSRAM.
 > - ADC1 = GPIO1..GPIO10 (el ADC2 comparte hardware con WiFi → usar ADC1 para batería).
 
@@ -131,7 +162,7 @@ teclas a la vez).
 | OLED SDA / SCL | 4 / 5 | I2C, pull-ups externos 4.7 kΩ |
 | Batería (ADC) | 1 | ADC1_CH0, vía divisor 100k/100k |
 | Carga activa (TP4056 `CHRG`) | 2 | Entrada digital (activo bajo) |
-| Carga completa (TP4056 `STDBY`) | 3 | Entrada digital (activo bajo) |
+| Carga completa (TP4056 `STDBY`) | 39 | Entrada digital (activo bajo) — GPIO3 es strapping, por eso se usa 39 |
 | VBUS detect (5 V del USB) | 18 | Vía divisor, entrada digital |
 
 **Total GPIO usados: 21** (matriz 9 + encoder 3 + I2C 2 + batería 1 + carga 2 + VBUS 1 +
@@ -145,7 +176,7 @@ USB-C ──► TP4056 (IN)      USB-C D+/D- ──► GPIO19/20 (datos HID)
           TP4056 (BAT-) ──► GND
           TP4056 (BAT+) ──► LDO 3.3V IN ──► 3.3V a todo el sistema
           TP4056 CHRG  ──► GPIO2
-          TP4056 STDBY ──► GPIO3
+          TP4056 STDBY ──► GPIO39
 Batería (+) ──► divisor 100k/100k ──► GPIO1 (ADC)
 ```
 
@@ -163,6 +194,9 @@ Consideraciones:
 
 - **SH1106** (1.3") o **SSD1306** (0.96"): drivers casi idénticos a nivel software.
 - Bus **I2C** (SDA/SCL) + 3.3 V + GND. Son los típicos módulos de 4 pines.
+- El controlador y el **offset de columnas** se eligen por `idf.py menuconfig`
+  (`Component config → Display (OLED)`): **SH1106 → offset 2**, **SSD1306 → offset 0**
+  (`CONFIG_DISPLAY_COL_OFFSET`). Cambiar el panel ya no requiere editar el código.
 - El firmware usa dígitos grandes (fuente ~24-32 px) para la calculadora y un modo
   compacto para el HUD de estado.
 

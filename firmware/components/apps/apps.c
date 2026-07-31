@@ -40,6 +40,14 @@ typedef enum {
 } menu_page_t;
 
 typedef enum {
+    DIAG_MATRIX = 0,
+    DIAG_ENCODER,
+    DIAG_ADC,
+    DIAG_OLED,
+    DIAG_EXIT,
+} diag_page_t;
+
+typedef enum {
     EDIT_NONE = 0,
     EDIT_CONTRAST,
     EDIT_ENCODER,
@@ -61,6 +69,13 @@ static char s_calc_result[CALC_DISPLAY_LEN];
 static menu_page_t s_menu_page = MENU_ROOT;
 static int s_menu_cursor;
 static edit_kind_t s_edit = EDIT_NONE;
+
+static diag_page_t s_diag_page = DIAG_MATRIX;
+static int s_diag_enc_count;
+static int s_diag_sw_count;
+static uint32_t s_diag_keys;
+static uint8_t s_diag_rows;
+static uint8_t s_diag_cols;
 
 static temperature_sensor_handle_t s_tsens;
 
@@ -195,7 +210,7 @@ static int menu_items(menu_page_t page)
 {
     switch (page) {
     case MENU_ROOT:
-        return 5;
+        return 6;
     case MENU_DISPLAY:
     case MENU_ENCODER:
     case MENU_SLEEP:
@@ -266,6 +281,9 @@ static void menu_confirm(void)
             s_menu_page = MENU_SLEEP;
             s_menu_cursor = 0;
             break;
+        case 4:
+            apps_enter_diag();
+            break;
         default:
             s_mode = APP_KEYBOARD;
             break;
@@ -331,7 +349,7 @@ static void render_menu(void)
         return;
     }
 
-    static const char *const root_items[] = { "Info", "Pantalla", "Encoder", "Sleep", "Salir" };
+    static const char *const root_items[] = { "Info", "Pantalla", "Encoder", "Sleep", "Diag", "Salir" };
     static const char *sub_items[] = { NULL, "Volver" };
     const char *const *items = NULL;
     int n = 0;
@@ -436,6 +454,55 @@ static void render_calc(void)
     display_text(0, 56, "SW=base N=pegar");
 }
 
+static void render_diag(void)
+{
+    char line[CALC_DISPLAY_LEN];
+    switch (s_diag_page) {
+    case DIAG_MATRIX: {
+        display_text(0, 0, "Diag: matriz");
+        int x0 = (DISPLAY_WIDTH - (s_diag_cols * 12)) / 2;
+        for (int r = 0; r < s_diag_rows && r < 5; r++) {
+            for (int c = 0; c < s_diag_cols && c < 4; c++) {
+                int idx = r * 4 + c;
+                char ch = (s_diag_keys & (1u << idx)) ? '#' : '.';
+                snprintf(line, sizeof(line), "%c", ch);
+                display_text(x0 + c * 12, 8 + r * 8, line);
+            }
+        }
+        break;
+    }
+    case DIAG_ENCODER:
+        display_text(0, 0, "Diag: encoder");
+        snprintf(line, sizeof(line), "Pasos: %d", s_diag_enc_count);
+        display_text(0, 16, line);
+        snprintf(line, sizeof(line), "SW: %d", s_diag_sw_count);
+        display_text(0, 24, line);
+        break;
+    case DIAG_ADC: {
+        int mv = power_battery_millivolts();
+        int pct = power_battery_percent();
+        display_text(0, 0, "Diag: bateria");
+        snprintf(line, sizeof(line), "ADC: %d.%dV %d%%", mv / 1000, (mv / 100) % 10, pct);
+        display_text(0, 8, line);
+        snprintf(line, sizeof(line), "CHRG=%d STDBY=%d",
+                 power_is_charging() ? 1 : 0, power_is_charging_done() ? 1 : 0);
+        display_text(0, 16, line);
+        snprintf(line, sizeof(line), "VBUS=%d", power_is_usb_powered() ? 1 : 0);
+        display_text(0, 24, line);
+        break;
+    }
+    case DIAG_OLED:
+        display_test_pattern();
+        return;
+    case DIAG_EXIT:
+    default:
+        display_text(0, 0, "Diag: salir");
+        display_text(0, 16, "SW para volver");
+        break;
+    }
+    display_text(0, 56, "SW=avanzar");
+}
+
 void apps_render(void)
 {
     switch (s_mode) {
@@ -444,6 +511,9 @@ void apps_render(void)
         break;
     case APP_MENU:
         render_menu();
+        break;
+    case APP_DIAG:
+        render_diag();
         break;
     default:
         render_hud();
@@ -501,6 +571,22 @@ bool apps_calc_active(void)
     return s_mode == APP_CALC;
 }
 
+void apps_enter_diag(void)
+{
+    s_mode = APP_DIAG;
+    s_diag_page = DIAG_MATRIX;
+    s_diag_enc_count = 0;
+    s_diag_sw_count = 0;
+    s_diag_keys = 0;
+}
+
+void apps_diag_set_keys(uint32_t pressed, uint8_t rows, uint8_t cols)
+{
+    s_diag_keys = pressed;
+    s_diag_rows = rows;
+    s_diag_cols = cols;
+}
+
 app_mode_t apps_mode(void)
 {
     return s_mode;
@@ -515,6 +601,10 @@ const char *apps_calc_result_string(void)
 
 bool apps_encoder_turn(bool cw)
 {
+    if (s_mode == APP_DIAG) {
+        s_diag_enc_count += cw ? 1 : -1;
+        return true;
+    }
     if (s_mode != APP_MENU) {
         return false;
     }
@@ -536,6 +626,13 @@ void apps_encoder_press(void)
         menu_confirm();
     } else if (s_mode == APP_CALC) {
         s_calc_mode = (calc_mode_t)((s_calc_mode + 1) % CALC_MODE_MAX);
+    } else if (s_mode == APP_DIAG) {
+        s_diag_sw_count++;
+        if (s_diag_page == DIAG_EXIT) {
+            s_mode = APP_KEYBOARD;
+        } else {
+            s_diag_page = (diag_page_t)(s_diag_page + 1);
+        }
     } else {
         menu_open();
     }

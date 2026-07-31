@@ -160,25 +160,30 @@ void hid_route_report(const hid_report_t *rpt);
 - Maneja **pairing/bonding** (Just Works). Guarda los bonds en NVS para reconexión
   automática.
 - Ejemplo base: `examples/bluetooth/bluedroid/ble/esp_hid_device`.
-- **Nota de RAM**: si con la pantalla activa Bluedroid consume demasiada RAM, se puede
-  migrar el mismo componente a **NimBLE** (más liviano), manteniendo la API `esp_hid`.
+- **Nota de RAM**: Bluedroid es pesado pero **entra**: medido con `idf.py size`, la IRAM
+  quedó al 99.99 % (16 383/16 384 B) y DIRAM al 32.6 % (111 KB). Si se necesita agregar
+  ISR/código en IRAM, migrar el mismo componente a **NimBLE** (más liviano) manteniendo
+  la API `esp_hid`.
 
-## 9. `display` — SH1106 + UI
+## 9. `display` — SH1106/SSD1306 + UI
 
-- Driver propio por I2C (módulo SH1106/SSD1306). Expone primitivas
-  (`display_begin`, `display_text`) y `display_update()` delega el render a `apps_render()`.
-- Tres pantallas controladas por el modo del sistema (`apps_mode()`):
+- Driver propio por I2C. El **controlador (SH1106 1.3" / SSD1306 0.96")** y su **offset
+  de columnas** se eligen por menuconfig (`CONFIG_DISPLAY_CONTROLLER_*` y
+  `CONFIG_DISPLAY_COL_OFFSET`). Expone primitivas (`display_begin`, `display_text`,
+  `display_test_pattern`) y `display_update()` delega el render a `apps_render()`.
+- Cuatro pantallas controladas por el modo del sistema (`apps_mode()`):
 
   1. **HUD / status** (modo TECLADO): batería (%), estado de carga, conexión USB/BLE.
   2. **Calculadora** (modo CALC): línea de modo (DEC/HEX/BIN) + valor.
   3. **Menú de configuración** (modo MENÚ): navegado con el encoder.
+  4. **Diagnóstico** (modo DIAG, self-test): matriz, encoder, batería y patrón OLED.
 
 - El encoder navega menús; en calculadora su pulsador cicla la base.
 
 ## 10. `apps` — modos, calculadora y menú
 
 Componente central que mantiene el **modo** del sistema (`APP_KEYBOARD`, `APP_MENU`,
-`APP_CALC`) y el render completo (`apps_render()`).
+`APP_CALC`, `APP_DIAG`) y el render completo (`apps_render()`).
 
 **Calculadora** (modo CALC, abierto con la tecla `CALC`):
 - Entrada: dígitos, `+ − * / =`, Enter; **Backspace = borra el último dígito**.
@@ -194,10 +199,23 @@ Info       → batería (mV/%), carga, temp del chip, MAC BLE, versión, uptime
 Pantalla   → Contraste (0–255, aplica al OLED)
 Encoder    → Invertir sentido (Sí/No)
 Sleep      → Timeout (Apagado / 30s / 5min / 10min)
+Diag       → abre el modo Diagnóstico (self-test)
 Salir      → vuelve al modo TECLADO
 ```
 - Giro: navegar / ajustar valor. Pulsador: entrar / confirmar / salir.
 - Los cambios se guardan en NVS vía el componente `settings`.
+
+**Diagnóstico** (modo DIAG, self-test previo a la compra / para validar placa):
+- **Entrada**: ítem `Diag` del menú, o **SW del encoder mantenido al encender** (útil si
+  la OLED no responde: la salida principal es por UART).
+- Páginas (se avanza con el **SW** del encoder):
+  1. **Matriz**: grid 5×4; cada tecla enciende su celda (`#`) y loguea por UART
+     (`diag key[N] kc=...`). También dibuja el patrón de tablero (`display_test_pattern`).
+  2. **Encoder**: contador de pasos (girar) y de pulsaciones SW.
+  3. **Batería**: mV/%, y estados `CHRG`/`STDBY`/`VBUS` (0/1).
+  4. **OLED**: patrón de tablero en pantalla completa (valida cableado del panel).
+  5. **Salir**: `SW` vuelve al modo TECLADO.
+- En DIAG las teclas **no** se envían al host (el report se construye con `pressed = 0`).
 
 ## 11. `settings` — persistencia (NVS)
 

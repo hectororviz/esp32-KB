@@ -1,0 +1,22 @@
+menu "Display (OLED)"
+
+choice DISPLAY_CONTROLLER
+    prompt "Controlador OLED"
+    default DISPLAY_CONTROLLER_SH1106
+
+    config DISPLAY_CONTROLLER_SH1106
+        bool "SH1106 (panel 1.3\")"
+
+    config DISPLAY_CONTROLLER_SSD1306
+        bool "SSD1306 (panel 0.96\")"
+endchoice
+
+config DISPLAY_COL_OFFSET
+    int "Offset de columnas del panel"
+    default 2 if DISPLAY_CONTROLLER_SH1106
+    default 0 if DISPLAY_CONTROLLER_SSD1306
+    help
+        Desplazamiento horizontal del framebuffer respecto al panel.
+        SH1106 (1.3\"): 2. SSD1306 (0.96\"): 0.
+
+endmenu

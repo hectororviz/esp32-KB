@@ -8,7 +8,7 @@
 
 static const char *TAG = "display";
 
-#define DISPLAY_COL_OFFSET 2
+#define DISPLAY_COL_OFFSET CONFIG_DISPLAY_COL_OFFSET
 
 #define FONT_W 5
 #define FONT_H 7
@@ -194,5 +194,17 @@ void display_update(void)
 {
     fb_clear();
     apps_render();
+    fb_flush();
+}
+
+void display_test_pattern(void)
+{
+    fb_clear();
+    for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+        for (int x = 0; x < DISPLAY_WIDTH; x++) {
+            int cell = (x / 8 + y / 8) & 1;
+            fb_pixel(x, y, cell);
+        }
+    }
     fb_flush();
 }

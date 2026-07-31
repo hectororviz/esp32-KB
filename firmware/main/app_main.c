@@ -106,6 +106,12 @@ void app_main(void)
     encoder_init();
     encoder_set_callback(encoder_event_cb, NULL);
 
+    vTaskDelay(pdMS_TO_TICKS(100));
+    if (gpio_get_level(ENCODER_PIN_SW) == 0) {
+        ESP_LOGI(TAG, "encoder SW held at boot: diag mode");
+        apps_enter_diag();
+    }
+
     uint32_t prev_pressed = 0;
     int last_battery = -1;
     TickType_t last_display = 0;
@@ -128,6 +134,10 @@ void app_main(void)
                     continue;
                 }
                 uint16_t kc = keymap_resolve(i);
+                if (apps_mode() == APP_DIAG) {
+                    ESP_LOGI(TAG, "diag key[%d] kc=%04X", i, kc);
+                    continue;
+                }
                 if (apps_mode() == APP_MENU) {
                     continue;
                 }
@@ -142,6 +152,7 @@ void app_main(void)
             }
         }
         prev_pressed = pressed;
+        apps_diag_set_keys(apps_mode() == APP_DIAG ? pressed : 0, MATRIX_ROWS, MATRIX_COLS);
 
         hid_report_t kbd;
         keymap_build_report(apps_mode() == APP_KEYBOARD ? pressed : 0, &kbd);
