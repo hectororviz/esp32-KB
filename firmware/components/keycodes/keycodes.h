@@ -8,6 +8,9 @@
 #define KC_HID_BASE  0x0100u
 #define KC_CC_BASE   0x0200u
 
+#define KEY_FN_INDEX    18
+#define KEY_CALC_INDEX  19
+
 #define KC_HID(k)    (KC_HID_BASE | (uint16_t)(k))
 #define KC_CC(k)     (KC_CC_BASE | (uint16_t)(k))
 

@@ -2,10 +2,6 @@
 
 #include "driver/gpio.h"
 
-#define MATRIX_ROWS        5
-#define MATRIX_COLS        4
-#define MATRIX_KEYS        (MATRIX_ROWS * MATRIX_COLS)
-
 #define MATRIX_ROW_PINS    { GPIO_NUM_6, GPIO_NUM_7, GPIO_NUM_8, GPIO_NUM_9, GPIO_NUM_10 }
 #define MATRIX_COL_PINS    { GPIO_NUM_11, GPIO_NUM_12, GPIO_NUM_13, GPIO_NUM_14 }
 

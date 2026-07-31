@@ -163,7 +163,7 @@ esp_err_t display_init(const display_config_t *cfg)
     for (size_t i = 0; i < sizeof(init_cmds); i++) {
         ret = display_cmd(init_cmds[i]);
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "init cmd %02X failed: %s", init_cmds[i], esp_err_to_name(ret));
+            ESP_LOGE(TAG, "init cmd %02X failed: %s", (unsigned)init_cmds[i], esp_err_to_name(ret));
             return ret;
         }
     }

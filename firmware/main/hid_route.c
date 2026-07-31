@@ -41,5 +41,5 @@ void hid_route_consumer_event(uint16_t consumer)
 {
     hid_usb_consumer_send(consumer);
     hid_ble_consumer_send(consumer);
-    ESP_LOGI(TAG, "consumer usage 0x%04X", consumer);
+    ESP_LOGI(TAG, "consumer usage 0x%04X", (unsigned)consumer);
 }

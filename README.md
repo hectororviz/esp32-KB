@@ -4,10 +4,9 @@ Proyecto de un **teclado numérico auxiliar** ("numpad") DIY basado en **ESP32-S
 conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** y una
 **pantalla OLED** que lo convierte también en una **calculadora standalone**.
 
-> Estado actual: **documentación completa + firmware en desarrollo (primera versión)**.
-> El hardware aún no fue adquirido; el código de `firmware/` es un esqueleto funcional
-> escrito contra ESP-IDF 5.4 (aún no compilado en esta máquina — no hay toolchain
-> instalado).
+> Estado actual: **documentación completa + firmware compilando** (ESP-IDF 5.4,
+> target esp32s3, build verificado en esta máquina). El hardware aún no fue adquirido;
+> queda pendiente la validación en placa real.
 
 ---
 
@@ -53,7 +52,8 @@ esp32-KB/
 │   ├── 05-alimentacion-y-bateria.md  Energía: TP4056, curva Li-Ion, medición ADC
 │   ├── 06-usb-y-bluetooth.md         HID: USB + BLE, coexistencia y limitaciones
 │   ├── 07-plan-de-desarrollo.md      Roadmap, fases y criterios de aceptación
-│   └── 08-referencias-y-recursos.md  Recursos y repos de referencia
+│   ├── 08-referencias-y-recursos.md  Recursos y repos de referencia
+│   └── 09-manual-de-usuario.md       Manual de usuario (cómo usarlo)
 └── firmware/                      <- Código fuente (ESP-IDF 5.4, C)
     ├── CMakeLists.txt
     ├── sdkconfig.defaults
@@ -70,11 +70,13 @@ Requisitos: **ESP-IDF 5.4** (`~/.espressif` / `export IDF_PATH`).
 
 ```bash
 cd firmware
-get_idf            # o: source $IDF_PATH/export.sh
-idf.py set-target esp32s3
-idf.py build       # descarga espressif/esp_tinyusb vía el component manager
-idf.py flash monitor
+source ~/esp/esp-idf/export.sh   # env local ya instalado (ESP-IDF v5.4 + toolchain esp32s3)
+idf.py build                     # descarga espressif/esp_tinyusb vía el component manager
+idf.py flash monitor             # con la placa conectada
 ```
+
+> Build **verificado** en esta máquina: `esp32_kb.bin` generado sin errores ni
+> warnings de nuestro código.
 
 Puntos a revisar antes de flashear el hardware real:
 
@@ -83,6 +85,54 @@ Puntos a revisar antes de flashear el hardware real:
   `components/power/power.c` según el hardware real.
 - El **offset de columnas** del SH1106 (`DISPLAY_COL_OFFSET`) en
   `components/display/display.c` (típicamente 2 en paneles 1.3").
+
+---
+
+## Conexiones y pinout (configuración actual)
+
+Esquema general de interconexión (es el que está configurado en
+`firmware/main/board_config.h`):
+
+```
+                          ┌────────────────────────────┐
+        Batería 18650 ────┤ BAT+      TP4056      BAT+ ├──── Batería
+                          │ CHRG ─── GPIO2             │
+                          │ STDBY── GPIO3              │
+                          │ IN   ◄── USB-C 5V          │
+                          └─────┬──────────────────────┘
+                                │ 3.3V (vía LDO)
+        ┌───────────────────────▼─────────────────────────────┐
+        │                     ESP32-S3                        │
+        │  R0..R4  (GPIO 6-10) ──► Filas matriz (salidas)      │
+        │  C0..C3  (GPIO 11-14) ◄─ Columnas matriz (pull-up)   │
+        │  A / B   (GPIO 15/16) ◄─ Encoder EC11 (cuadratura)   │
+        │  SW      (GPIO 17)    ◄─ Encoder pulsador (a GND)    │
+        │  SDA     (GPIO 4)     ◄─ OLED SH1106 (I2C @0x3C)     │
+        │  SCL     (GPIO 5)     ─► (pull-ups externos 4.7k)    │
+        │  ADC1_CH0(GPIO 1)     ◄─ Batería vía divisor 100k/100k│
+        │  VBUS    (GPIO 18)    ◄─ Detección 5V USB (divisor)   │
+        │  D+/D-   (GPIO 19/20) ──► USB-C (HID nativo)          │
+        └───────────────────────────────────────────────────────┘
+```
+
+Tabla resumen (función → GPIO):
+
+| Función | GPIO(s) | Tipo | Observación |
+|---|---|---|---|
+| Filas matriz R0–R4 | 6, 7, 8, 9, 10 | Salida push-pull | Se baja una fila a la vez |
+| Columnas matriz C0–C3 | 11, 12, 13, 14 | Entrada, pull-up interno | Tecla presionada = nivel bajo |
+| Encoder EC11 A / B | 15 / 16 | Entrada, pull-up | Cuadratura |
+| Encoder pulsador SW | 17 | Entrada, pull-up | Pulsador a GND |
+| OLED SDA / SCL | 4 / 5 | I2C (400 kHz) | Dirección `0x3C`; pull-ups externos 4.7 kΩ |
+| Batería (medición) | 1 | ADC1_CH0 | Divisor 100k/100k → 3.3 V máx |
+| Carga activa (TP4056 CHRG) | 2 | Entrada, activo bajo | `0` = cargando |
+| Carga completa (TP4056 STDBY) | 3 | Entrada, activo bajo | `0` = carga completa |
+| VBUS detect | 18 | Entrada (divisor) | `1` = conectado a USB |
+| USB HID | 19 / 20 | USB nativo | D− / D+ — no usar para otra cosa |
+
+> Notas: `GPIO0`, `GPIO45`, `GPIO46` son strapping (no usar sin cuidado); `GPIO33–37`
+> suelen estar ocupados por PSRAM octal en esta placa. Detalle completo en
+> [docs/02-hardware.md](docs/02-hardware.md).
 
 ---
 
@@ -96,6 +146,8 @@ Puntos a revisar antes de flashear el hardware real:
    pensadas, priorizadas, por si querés recortar alcance.
 4. **[docs/07-plan-de-desarrollo.md](docs/07-plan-de-desarrollo.md)** es el roadmap con
    hitos verificables.
+5. **[docs/09-manual-de-usuario.md](docs/09-manual-de-usuario.md)** explica cómo usar el
+   teclado (conexión, capas, calculadora, solución de problemas).
 
 ---
 
@@ -103,7 +155,7 @@ Puntos a revisar antes de flashear el hardware real:
 
 - [ ] Adquirir componentes (ver BOM en `docs/02-hardware.md`).
 - [ ] Validar GPIO map con la placa de desarrollo elegida (PSRAM octal, strapping).
-- [ ] Instalar ESP-IDF 5.4 y compilar `firmware/` (ver sección de build arriba).
+- [x] Instalar ESP-IDF 5.4 y compilar `firmware/` (build verificado).
 - [ ] Construir el gabinete / PCB (fuera del alcance del firmware).
 - [ ] Probar firmware en hardware real y ajustar pines/offsets.
 

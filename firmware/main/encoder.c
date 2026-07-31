@@ -3,13 +3,10 @@
 #include "driver/gpio.h"
 
 #include "esp_bit_defs.h"
-#include "esp_log.h"
 #include "esp_rom_sys.h"
 
 #include "board_config.h"
 #include "encoder.h"
-
-static const char *TAG = "encoder";
 
 #define ENC_POLL_MS     5
 #define ENC_SW_DEBOUNCE 20

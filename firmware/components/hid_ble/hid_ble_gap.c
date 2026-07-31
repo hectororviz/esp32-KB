@@ -25,13 +25,13 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_p
         }
         break;
     case ESP_GAP_BLE_KEY_EVT:
-        ESP_LOGV(TAG, "KEY type = %s", esp_ble_key_type_str(param->ble_security.ble_key.key_type));
+        ESP_LOGV(TAG, "KEY event");
         break;
     case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(TAG, "PASSKEY_NOTIF passkey:%06d", param->ble_security.key_notif.passkey);
+        ESP_LOGI(TAG, "PASSKEY_NOTIF passkey:%06u", (unsigned)param->ble_security.key_notif.passkey);
         break;
     case ESP_GAP_BLE_NC_REQ_EVT:
-        ESP_LOGI(TAG, "NC_REQ passkey:%06d, confirming", param->ble_security.key_notif.passkey);
+        ESP_LOGI(TAG, "NC_REQ passkey:%06u, confirming", (unsigned)param->ble_security.key_notif.passkey);
         esp_ble_confirm_reply(param->ble_security.key_notif.bd_addr, true);
         break;
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
