@@ -64,3 +64,17 @@ void settings_save(void)
     }
     nvs_close(handle);
 }
+
+uint32_t settings_sleep_seconds(void)
+{
+    switch (g_settings.sleep_timeout) {
+    case SETTINGS_SLEEP_30S:
+        return 30;
+    case SETTINGS_SLEEP_5MIN:
+        return 300;
+    case SETTINGS_SLEEP_10MIN:
+        return 600;
+    default:
+        return 0;
+    }
+}

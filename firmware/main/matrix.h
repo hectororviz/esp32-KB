@@ -12,3 +12,4 @@
 void matrix_init(void);
 bool matrix_scan(void);
 uint32_t matrix_get_state(void);
+void matrix_enter_sleep(void);

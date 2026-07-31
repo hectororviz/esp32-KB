@@ -114,11 +114,15 @@ pantalla; el menú guarda y restaura sus ajustes al reiniciar.
 **Objetivo**: batería confiable + auto-sleep.
 
 Tareas:
-- [ ] Leer ADC1 (GPIO1) con divisor; calibrar con multímetro (2-3 puntos).
-- [ ] Mapear voltaje → % con curva Li-Ion (no medir durante carga activa).
-- [ ] Detectar `CHRG`/`STDBY`/VBUS y mostrar estado en HUD.
-- [ ] Idle 30 s → apagar pantalla; 5 min → light sleep; wake por tecla/encoder.
-- [ ] Alertas de batería baja (< 20 %, < 10 %).
+- [x] Leer ADC1 (GPIO1) con divisor; calibración multipunto pendiente de placa.
+- [x] Mapear voltaje → % con curva Li-Ion (no medir durante carga activa).
+- [x] Detectar `CHRG`/`STDBY`/VBUS y mostrar estado en HUD.
+- [x] Idle → apagar pantalla según setting `Sleep`; +5 min → light sleep (si no hay
+      USB/BLE); wake por tecla/SW/VBUS.
+- [x] Alertas de batería baja (< 20 % `BAT!`, < 10 % parpadeo).
+
+> Implementado en v0.3; **validación en placa real pendiente** (consumo, wake real,
+> calibración con multímetro).
 
 **Criterio de aceptación**: el % coincide ±5 puntos con el multímetro en reposo; el pad
 despierta de sleep al tocar cualquier tecla; la autonomía en uso normal supera varios
@@ -131,9 +135,10 @@ días (ver cálculos en `05`).
 **Objetivo**: completar el alcance v1 sugerido en `04-ideas-funciones.md`.
 
 Tareas:
-- [ ] Encoder multifunción (velocidad de giro, scroll/zoom opcionales).
-- [ ] "Pegar resultado" desde la calculadora (envío HID).
+- [x] Encoder con velocidad de giro (paso doble en giro rápido).
+- [x] "Pegar resultado" desde la calculadora (envío HID con NumLk).
 - [ ] Ajustes avanzados en el menú (calibración de batería, sleep configurable).
+- [ ] CI: build automático en GitHub Actions (v0.3).
 
 > Re-scope v0.2: se descartaron **media keys (capa Fn)**, **macros/snippets** y
 > **tap-hold**.

@@ -56,6 +56,7 @@ static bool s_ble_connected;
 static bool s_usb_mounted;
 
 static char s_status[CALC_DISPLAY_LEN];
+static char s_calc_result[CALC_DISPLAY_LEN];
 
 static menu_page_t s_menu_page = MENU_ROOT;
 static int s_menu_cursor;
@@ -410,7 +411,15 @@ static void render_menu(void)
 
 static void render_hud(void)
 {
-    display_text(0, 0, s_status);
+    char line[CALC_DISPLAY_LEN];
+    snprintf(line, sizeof(line), "%s", s_status);
+    if (s_battery_pct < 20) {
+        snprintf(line + strlen(line), sizeof(line) - strlen(line), " BAT!");
+    }
+    if (s_battery_pct < 10 && ((esp_timer_get_time() / 500000ULL) & 1ULL)) {
+        line[0] = '\0';
+    }
+    display_text(0, 0, line);
     display_text(0, 16, "Numpad-20");
 }
 
@@ -424,7 +433,7 @@ static void render_calc(void)
     display_text(0, 0, line);
     calc_format(s_calc.fresh ? s_calc.acc : s_calc.entry, line, sizeof(line), s_calc_mode);
     display_text(0, 16, line);
-    display_text(0, 56, "SW=base");
+    display_text(0, 56, "SW=base N=pegar");
 }
 
 void apps_render(void)
@@ -495,6 +504,13 @@ bool apps_calc_active(void)
 app_mode_t apps_mode(void)
 {
     return s_mode;
+}
+
+const char *apps_calc_result_string(void)
+{
+    calc_format(s_calc.fresh ? s_calc.acc : s_calc.entry, s_calc_result,
+                sizeof(s_calc_result), s_calc_mode);
+    return s_calc_result;
 }
 
 bool apps_encoder_turn(bool cw)

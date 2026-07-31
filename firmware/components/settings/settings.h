@@ -18,3 +18,4 @@ extern settings_t g_settings;
 
 void settings_load(void);
 void settings_save(void);
+uint32_t settings_sleep_seconds(void);

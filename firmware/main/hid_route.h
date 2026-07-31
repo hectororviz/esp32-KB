@@ -15,3 +15,4 @@ typedef struct {
 esp_err_t hid_route_init(void);
 void hid_route_update(const hid_report_t *kbd);
 void hid_route_consumer_event(uint16_t consumer);
+void hid_route_type_string(const char *s);

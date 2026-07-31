@@ -74,6 +74,7 @@ El teclado tiene **una sola capa** (sin Fn):
 | **Presionar (SW)** | Abre el menú | Seleccionar / confirmar | Cambia base DEC → HEX → BIN |
 
 > En el menú de ajustes (Pantalla → Encoder) podés **invertir el sentido** del giro.
+> Si girás el encoder **rápido**, el paso es doble (el volumen o el menú avanzan de a dos).
 
 ## 6. Pantalla OLED
 
@@ -89,7 +90,9 @@ El teclado tiene **una sola capa** (sin Fn):
    resultado.
 3. **BkSpc** borra el último dígito.
 4. Con el **botón del encoder** cambiás de base: DEC → HEX → BIN.
-5. Cerrá la calculadora con **CALC** de nuevo (al reabrir, queda en cero).
+5. Con la tecla **NumLk** enviás el **resultado al host** (se tipía solo: dígitos, `-`, y
+   A–F para HEX).
+6. Cerrá la calculadora con **CALC** de nuevo (al reabrir, queda en cero).
 
 > Cuando la calculadora está abierta, las teclas **no** se envían al host: solo
 > alimentan el motor de cálculo.
@@ -105,7 +108,7 @@ El teclado tiene **una sola capa** (sin Fn):
 | **Info** | Datos del dispositivo: batería (mV y %), estado de carga, temperatura del chip, MAC BLE, versión de firmware y uptime. |
 | **Pantalla → Contraste** | Brillo del OLED (0–255). Aplicá y confirmá con el SW. |
 | **Encoder → Invertir** | Invierte el sentido del giro (No/Sí). |
-| **Sleep → Timeout** | Apagado / 30s / 5min / 10min de inactividad. *(fase 2+): además apaga la pantalla y duerme.* |
+| **Sleep → Timeout** | Apagado / 30s / 5min / 10min. Al cumplirse el tiempo sin uso, se **apaga la pantalla**; a los 5 min adicionales (sin USB ni BLE conectados) entra en **sleep** y se despierta con cualquier tecla, el pulsador del encoder o al conectar USB. |
 | **Salir** | Vuelve al modo teclado. |
 
 Los ajustes quedan **guardados** (se restauran al reiniciar).
@@ -118,9 +121,12 @@ Los ajustes quedan **guardados** (se restauran al reiniciar).
   (indicador LED en la placa: rojo cargando / azul listo).
 - **Porcentaje:** se muestra en la línea de estado. Está calibrado con una curva
   Li-Ion simple (ver `docs/05-alimentacion-y-bateria.md`).
+- **Batería baja:** por debajo de 20 % el HUD muestra `BAT!`; por debajo de 10 % la
+  línea de estado parpadea.
+- **Sleep:** configurable en el menú (ver arriba). Con el timeout en "Apagado", la
+  pantalla nunca se apaga sola.
 
-> *(fase 2+)* Aviso de batería baja (<20 %), apagado de pantalla por inactividad y
-> sleep profundo.
+> *(fase 2+)* Avisos más finos de carga, historial de batería y sleep con consumo medido.
 
 ## 10. Solución de problemas
 
@@ -134,8 +140,9 @@ Los ajustes quedan **guardados** (se restauran al reiniciar).
 
 ## 11. Estado del proyecto
 
-- **Firmware actual:** v0.2 compilado con éxito (ESP-IDF 5.4), sin capa Fn y con menú
-  de ajustes. Pendiente de validación en hardware real.
-- **Hardware:** aún no adquirido/ensamblado.
+- **Firmware actual:** v0.3 compilado con éxito (ESP-IDF 5.4): sin capa Fn, menú de
+  ajustes, sleep por inactividad y "pegar resultado". Pendiente de validación en
+  hardware real.
+- **Hardware:** aún no adquirido/ensamblado (ver lista de compra en `docs/02`).
 - Detalles técnicos en [docs/02-hardware.md](02-hardware.md) y
   [docs/03-firmware.md](03-firmware.md).

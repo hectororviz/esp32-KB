@@ -1,13 +1,16 @@
 # esp32-KB — Teclado Numérico Auxiliar (Numpad-20) con ESP32-S3
 
+[![build](https://github.com/hectororviz/esp32-KB/actions/workflows/build.yml/badge.svg)](https://github.com/hectororviz/esp32-KB/actions/workflows/build.yml)
+
 Proyecto de un **teclado numérico auxiliar** ("numpad") DIY basado en **ESP32-S3**, con
 conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** y una
 **pantalla OLED** que lo convierte también en una **calculadora standalone**.
 
-> Estado actual: **documentación completa + firmware compilando** (ESP-IDF 5.4,
-> target esp32s3, build verificado en esta máquina). El hardware aún no fue adquirido;
-> queda pendiente la validación en placa real. El firmware usa **una sola capa** de teclas
-> (sin Fn) y un **menú de ajustes** en pantalla operado con el encoder.
+> Estado actual: **documentación completa + firmware v0.3 compilando** (ESP-IDF 5.4,
+> target esp32s3, build verificado en esta máquina + CI en GitHub Actions). El hardware
+> aún no fue adquirido; queda pendiente la validación en placa real. El firmware usa
+> **una sola capa** de teclas (sin Fn), un **menú de ajustes** en pantalla operado con
+> el encoder, **sleep** por inactividad y **"pegar resultado"** de la calculadora.
 
 ---
 
@@ -30,11 +33,13 @@ conexión **USB y Bluetooth (BLE)** simultáneas, batería recargable **18650** 
   Backspace) por USB y BLE a la vez.
 - **Encoder EC11**: volumen en modo teclado y calculadora; navegación del menú.
 - **Tecla CALC** dedicada para abrir/cerrar la **calculadora standalone** (con
-  Backspace = borrar dígito y modos DEC/HEX/BIN ciclados con el pulsador del encoder).
+  Backspace = borrar dígito, modos DEC/HEX/BIN con el pulsador del encoder y **NumLk =
+  pegar el resultado al host**).
 - **Menú de ajustes en pantalla** (operado con el encoder): Info del sistema, contraste
   del OLED, invertir encoder y timeout de sleep; persistido en NVS.
-- **Pantalla de estado**: batería, carga, conexión USB/BLE.
-- **Gestión de energía** (fase 5): auto-sleep, aviso de batería baja, wake por tecla.
+- **Pantalla de estado**: batería, carga, conexión USB/BLE y avisos de batería baja.
+- **Gestión de energía**: apagado de pantalla por inactividad, **light sleep** con wake
+  por tecla/encoder/USB (validación de consumo pendiente de placa).
 
 ---
 

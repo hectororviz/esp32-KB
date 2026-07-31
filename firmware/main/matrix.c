@@ -83,3 +83,10 @@ uint32_t matrix_get_state(void)
 {
     return s_state;
 }
+
+void matrix_enter_sleep(void)
+{
+    for (int r = 0; r < MATRIX_ROWS; r++) {
+        gpio_set_level(s_row_pins[r], 0);
+    }
+}

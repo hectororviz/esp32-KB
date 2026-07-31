@@ -4,18 +4,21 @@
 
 #include "esp_bit_defs.h"
 #include "esp_rom_sys.h"
+#include "esp_timer.h"
 
 #include "board_config.h"
 #include "encoder.h"
 
 #define ENC_POLL_MS     5
 #define ENC_SW_DEBOUNCE 20
+#define ENC_FAST_MS     25
 
 static encoder_cb_t s_cb;
 static void *s_cb_arg;
 static int s_last;
 static bool s_sw_state;
 static uint8_t s_sw_count;
+static int64_t s_last_step_us;
 
 static int encoder_read_gray(void)
 {
@@ -50,7 +53,13 @@ static void encoder_update_state(void)
     }
     s_last = cur;
     if (dir != ENC_NONE && s_cb) {
+        int64_t now = esp_timer_get_time();
+        bool fast = (s_last_step_us != 0 && now - s_last_step_us < ENC_FAST_MS * 1000);
+        s_last_step_us = now;
         s_cb(dir, s_cb_arg);
+        if (fast) {
+            s_cb(dir, s_cb_arg);
+        }
     }
 }
 
@@ -85,6 +94,7 @@ void encoder_init(void)
     s_last = encoder_read_gray();
     s_sw_state = gpio_get_level(ENCODER_PIN_SW) == 0;
     s_sw_count = 0;
+    s_last_step_us = 0;
 
     xTaskCreate(encoder_poll_task, "enc", 2048, NULL, 5, NULL);
 }

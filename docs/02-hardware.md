@@ -27,6 +27,47 @@
 - Tira WS2812 (underglow RGB).
 - Bloque de pines / placa perforada para armar la matriz.
 
+### 1.1 Lista de compra final (v1)
+
+Versión concreta recomendada para comprar. Precios **aproximados** (USD, kit individual;
+bajan comprando lotes). Ya cubiertos por `main/board_config.h`.
+
+| # | Componente | Producto sugerido | Cant. | Precio aprox. | Proveedores |
+|---|---|---|---|---|---|
+| 1 | Placa ESP32-S3 | **ESP32-S3-DevKitC-1 N16R8** (16 MB flash / 8 MB PSRAM) | 1 | 8–15 USD | AliExpress, Amazon, MercadoLibre |
+| 2 | Switchs mecánicos | **Gateron / Cherry MX** (10 unidades) | 2 | 10–20 USD | AliExpress, Amazon |
+| 3 | Keycaps | Kit numpad o set con 20 caps 1U | 1 | 5–10 USD | AliExpress, Amazon |
+| 4 | Diodos | **1N4148** (lote de 100) | 20 | 1–2 USD | tienda local, AliExpress |
+| 5 | Encoder | **EC11** con pulsador + perilla | 1 | 1–3 USD | AliExpress, Amazon |
+| 6 | Pantalla | **OLED 1.3" I2C SH1106** (128×64) | 1 | 3–5 USD | AliExpress, Amazon |
+| 7 | Batería | **18650 protegida** (Li-Ion 2000–3000 mAh) | 1 | 5–8 USD | tienda local, Amazon |
+| 8 | Cargador | **Módulo TP4056 con protección** (Type-C) | 1 | 1–2 USD | AliExpress, Amazon |
+| 9 | Regulador | **LDO 3.3 V** AMS1117 / HT7833 / XC6206 | 1 | 0.5–1 USD | tienda local, AliExpress |
+| 10 | Resistencias | 100 kΩ (×2, divisor ADC), 4.7 kΩ (×2, I2C), 10 kΩ (×2) | lote | 1 USD | tienda local |
+| 11 | Condensadores | 0.1 µF (×5) y 10–100 µF (×2) | lote | 1 USD | tienda local |
+| 12 | Prototipado | Protoboard + cables dupont | 1 | 3–5 USD | tienda local, AliExpress |
+| 13 | Interruptor | Deslizante (corte de alimentación) | 1 | 1 USD | tienda local |
+
+> **Kit mínimo ≈ 35–55 USD.** Consejos:
+> - AliExpress: más barato, entrega 2–6 semanas. Amazon/MercadoLibre: más caro, rápido.
+> - Comprar **2× switchs y OLED** por si acaso (fallas/roturas son comunes).
+> - Verificar que el **OLED sea SH1106 de 1.3"** (el de 0.96" es SSD1306; el firmware
+>   usa `DISPLAY_COL_OFFSET` distinto según panel).
+> - La placa DevKitC-1 N16R8 usa **PSRAM octal**: GPIO33–37 quedan ocupados (el pinout
+>   ya los evita).
+
+### 1.2 Checklist al recibir
+
+- [ ] La placa tiene **USB nativo** (D+/D− = GPIO19/20) y **USB-C**.
+- [ ] Verificar pinout de la placa real: GPIO0/45/46 (strapping) y GPIO33–37 (PSRAM octal).
+- [ ] El OLED se ve correctamente; si no, ajustar `DISPLAY_COL_OFFSET` en
+      `components/display/display.c`.
+- [ ] Girar el encoder y confirmar el sentido esperado; si está invertido, usar el menú
+      `Encoder → Invertir` o el setting `enc_inv` en NVS.
+- [ ] Medir la batería con multímetro y calibrar `BATTERY_DIVIDER_RATIO` / la curva en
+      `components/power/power.c` (ver `docs/05`).
+- [ ] Probar los 20 switchs (flashear y escribir todas las teclas en un editor).
+
 ## 2. Layout de teclas (20 teclas, todo 1×1)
 
 ```

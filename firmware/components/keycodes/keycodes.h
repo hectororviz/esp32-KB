@@ -21,6 +21,26 @@
 #define HID_ARROW_RIGHT    0x4F
 #define HID_ARROW_DOWN     0x51
 
+#define HID_A              0x04
+#define HID_B              0x05
+#define HID_C              0x06
+#define HID_D              0x07
+#define HID_E              0x08
+#define HID_F              0x09
+
+#define HID_MINUS          0x2D
+
+#define HID_1              0x1E
+#define HID_2              0x1F
+#define HID_3              0x20
+#define HID_4              0x21
+#define HID_5              0x22
+#define HID_6              0x23
+#define HID_7              0x24
+#define HID_8              0x25
+#define HID_9              0x26
+#define HID_0              0x27
+
 #define HID_KP_NUMLOCK     0x53
 #define HID_KP_DIVIDE      0x54
 #define HID_KP_MULTIPLY    0x55

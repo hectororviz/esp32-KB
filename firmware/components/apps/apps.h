@@ -14,6 +14,7 @@ void apps_on_key(uint16_t keycode);
 void apps_toggle_calc(void);
 bool apps_calc_active(void);
 app_mode_t apps_mode(void);
+const char *apps_calc_result_string(void);
 
 bool apps_encoder_turn(bool cw);
 void apps_encoder_press(void);

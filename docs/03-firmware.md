@@ -88,6 +88,9 @@ while (1) {
 }
 ```
 
+El **encoder** (v0.3): si el intervalo entre pasos es < 25 ms (giro rápido) el evento se
+dispara **dos veces** (volumen/menú "saltan" más rápido).
+
 ## 4. `matrix` — escaneo y debounce
 
 - **Scan**: filas en push-pull, se baja una a la vez; columnas se leen con pull-up.
@@ -139,6 +142,8 @@ void hid_route_report(const hid_report_t *rpt);
 - La **tecla CALC** nunca se envía al host (es local, toggle de calculadora).
 - El **volumen del encoder** se envía como consumer report (evento puntual vía
   `hid_route_consumer_event()`, sin estado persistente).
+- `hid_route_type_string()` tipia un string al host (USB+BLE): se usa para **pegar el
+  resultado** de la calculadora (dígitos, `-`, y A–F con Shift para HEX).
 
 ## 7. `hid_usb` — TinyUSB
 
@@ -179,6 +184,8 @@ Componente central que mantiene el **modo** del sistema (`APP_KEYBOARD`, `APP_ME
 - Entrada: dígitos, `+ − * / =`, Enter; **Backspace = borra el último dígito**.
 - **Notación estándar** (operador de dos operandos con acumulador).
 - **Modos**: DEC, HEX, BIN (ciclo con el pulsador del encoder).
+- **Pegar resultado** (v0.3): con la tecla **NumLk** el resultado se envía al host por
+  HID (`hid_route_type_string`), tipiándolo como si fuera un teclado.
 - Sin memoria ni historial (descartado en el re-scope v0.2).
 
 **Menú de ajustes** (modo MENÚ, abierto con el pulsador del encoder):
@@ -203,13 +210,16 @@ Salir      → vuelve al modo TECLADO
 - **Medición de batería**: ADC1_CH0 (GPIO1) vía divisor. Conversión a porcentaje con
   una **curva Li-Ion calibrada** (ver `05-alimentacion-y-bateria.md`).
 - **Detección de carga**: pines `CHRG`/`STDBY` del TP4056 (activos en bajo).
-- **Idle / sleep**:
-  - 30 s sin actividad → apagar pantalla.
-  - 5 min sin actividad → **light sleep** (µA de consumo).
-  - Wake por cualquier tecla o giro/pulsación del encoder (GPIO wake).
-  - Al volver de sleep, se re-inicializa USB/BLE para reconexión rápida.
-- **Aviso de batería baja**: < 20 % → icono en pantalla; < 10 % → parpadeo + opcional
-  beep.
+- **Idle / sleep** (implementado en v0.3):
+  - Al cumplirse el **timeout** del setting `Sleep` (30s / 5min / 10min) sin actividad
+    → `display_off()` (la matriz sigue escaneando y enviando HID).
+  - A los **+5 min** de pantalla apagada, y solo si **no hay USB ni BLE conectado**:
+    **light sleep** con wake por GPIO (columnas en LOW = tecla, SW del encoder en LOW,
+    VBUS en HIGH = conectar USB).
+  - Al despertar: `matrix_init()` + `display_on()`.
+  - Limitación: **girar solo el encoder no despierta** (no hay wake por flanco en light
+    sleep); despierta una tecla, el pulsador del encoder o conectar USB.
+  - **Aviso de batería baja**: `< 20 %` → `BAT!` en el HUD; `< 10 %` → la línea parpadea.
 
 ## 13. Configuración (`sdkconfig`)
 
